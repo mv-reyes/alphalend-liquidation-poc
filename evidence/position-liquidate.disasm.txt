@@ -1,0 +1,3199 @@
+// Move bytecode v6
+module d631cd66138909636fc3f73ed75820d0c5b76332d1644608ed1c85ea2b8219b4.position {
+use d631cd66138909636fc3f73ed75820d0c5b76332d1644608ed1c85ea2b8219b4::events;
+use d631cd66138909636fc3f73ed75820d0c5b76332d1644608ed1c85ea2b8219b4::market;
+use d631cd66138909636fc3f73ed75820d0c5b76332d1644608ed1c85ea2b8219b4::oracle;
+use d631cd66138909636fc3f73ed75820d0c5b76332d1644608ed1c85ea2b8219b4::rewards;
+use 4b591bbc246c9fadd28e7ac895e0778fb0e102f1b0d9f441e78d35f0d1ea1fcc::math;
+use 3492c874c1e3b3e2984e8c41b589e642d4d0a5d6459e5a9cfc2d52fd7c89c267::config;
+use 3492c874c1e3b3e2984e8c41b589e642d4d0a5d6459e5a9cfc2d52fd7c89c267::pool;
+use 3492c874c1e3b3e2984e8c41b589e642d4d0a5d6459e5a9cfc2d52fd7c89c267::position as 1position;
+use 1eabed72c53feb3805120a081dc15963c204dc8d091542592abaf7a35689b2fb::clmm_math;
+use 714a63a0dba6da4f017b42d5d0fb78867f18bcde904868e51d951a5a6f5b7f57::i32;
+use 0000000000000000000000000000000000000000000000000000000000000001::option;
+use 0000000000000000000000000000000000000000000000000000000000000001::string;
+use 0000000000000000000000000000000000000000000000000000000000000001::type_name;
+use 0000000000000000000000000000000000000000000000000000000000000001::vector;
+use 0000000000000000000000000000000000000000000000000000000000000002::balance;
+use 0000000000000000000000000000000000000000000000000000000000000002::clock;
+use 0000000000000000000000000000000000000000000000000000000000000002::coin;
+use 0000000000000000000000000000000000000000000000000000000000000002::dynamic_field;
+use 0000000000000000000000000000000000000000000000000000000000000002::object;
+use 0000000000000000000000000000000000000000000000000000000000000002::table;
+use 0000000000000000000000000000000000000000000000000000000000000002::tx_context;
+use 0000000000000000000000000000000000000000000000000000000000000002::vec_map;
+
+struct PositionCap has store, key {
+	id: UID,
+	position_id: ID,
+	client_address: address,
+	image_url: String
+}
+
+struct Position has store, key {
+	id: UID,
+	partner_id: Option<ID>,
+	lp_collaterals: Option<LpPositionCollateral>,
+	collaterals: VecMap<u64, u64>,
+	loans: vector<Borrow>,
+	total_collateral_usd: Number,
+	safe_collateral_usd: Number,
+	liquidation_value: Number,
+	additional_permissible_borrow_usd: Number,
+	total_loan_usd: Number,
+	spot_total_loan_usd: Number,
+	weighted_total_loan_usd: Number,
+	weighted_spot_total_loan_usd: Number,
+	is_position_healthy: bool,
+	is_position_liquidatable: bool,
+	reward_distributors: vector<UserRewardDistributor>,
+	is_isolated_borrowed: bool,
+	last_refreshed: u64,
+	position_type: u8
+}
+
+struct LpPositionCollateralConfig has drop, store {
+	safe_collateral_ratio: u8,
+	liquidation_threshold: u8,
+	liquidation_bonus: u64,
+	liquidation_fee: u64,
+	close_factor_percentage: u8
+}
+
+struct LpPositionCollateral has store {
+	pool_id: ID,
+	lp_position_id: ID,
+	usd_value: Number,
+	safe_usd_value: Number,
+	liquidation_value: Number,
+	liquidity: u128,
+	config: LpPositionCollateralConfig,
+	last_updated: u64,
+	lp_type: u8
+}
+
+struct TokenCollateral<phantom Ty0> has store {
+	market_id: u64,
+	x_token: Balance<XToken<Ty0>>,
+	reward_distributor_index: u64
+}
+
+struct Borrow has store {
+	coin_type: TypeName,
+	market_id: u64,
+	amount: u64,
+	borrow_time: u64,
+	borrow_compounded_interest: Number,
+	reward_distributor_index: u64
+}
+
+struct PositionCreateEvent has copy, drop {
+	position_id: ID,
+	partner_id: Option<ID>
+}
+
+struct PositionUpdateEvent has copy, drop {
+	position_id: ID,
+	partner_id: Option<ID>,
+	total_collateral_usd: Number,
+	safe_collateral_usd: Number,
+	liquidation_value: Number,
+	additional_permissible_borrow_usd: Number,
+	total_loan_usd: Number,
+	spot_total_loan_usd: Number,
+	weighted_total_loan_usd: Number,
+	weighted_spot_total_loan_usd: Number,
+	is_position_healthy: bool,
+	is_position_liquidatable: bool,
+	is_isolated_borrowed: bool,
+	last_refreshed: u64
+}
+
+struct LPPositionCollateralUpdateEvent has copy, drop {
+	position_id: ID,
+	pool_id: ID,
+	lp_position_id: ID,
+	usd_value: Number,
+	safe_usd_value: Number,
+	liquidation_value: Number,
+	liquidity: u128,
+	lp_type: u8,
+	last_updated: u64
+}
+
+struct TokenCollateralUpdateEvent has copy, drop {
+	position_id: ID,
+	coin_type: TypeName,
+	market_id: u64,
+	x_token_balance: u64,
+	reward_distributor_index: u64
+}
+
+struct BorrowUpdateEvent has copy, drop {
+	position_id: ID,
+	coin_type: TypeName,
+	market_id: u64,
+	amount: u64,
+	borrow_time: u64,
+	borrow_compounded_interest: Number,
+	reward_distributor_index: u64
+}
+
+create_nft_url(Arg0: vector<u8>): String {
+L1:	loc0: u8
+L2:	loc1: u8
+L3:	loc2: u8
+L4:	loc3: vector<u8>
+L5:	loc4: u8
+L6:	loc5: u8
+L7:	loc6: u64
+L8:	loc7: u8
+L9:	loc8: u8
+L10:	loc9: vector<u8>
+B0:
+	0: LdConst[17](vector<u8>: "htt..)
+	1: StLoc[10](loc9: vector<u8>)
+	2: VecPack(42, 0)
+	3: StLoc[4](loc3: vector<u8>)
+	4: LdU64(0)
+	5: StLoc[7](loc6: u64)
+B1:
+	6: CopyLoc[7](loc6: u64)
+	7: ImmBorrowLoc[0](Arg0: vector<u8>)
+	8: VecLen(42)
+	9: Lt
+	10: BrFalse(66)
+B2:
+	11: Branch(12)
+B3:
+	12: ImmBorrowLoc[0](Arg0: vector<u8>)
+	13: CopyLoc[7](loc6: u64)
+	14: VecImmBorrow(42)
+	15: ReadRef
+	16: StLoc[3](loc2: u8)
+	17: CopyLoc[3](loc2: u8)
+	18: LdU8(4)
+	19: Shr
+	20: StLoc[6](loc5: u8)
+	21: MoveLoc[3](loc2: u8)
+	22: LdU8(15)
+	23: BitAnd
+	24: StLoc[9](loc8: u8)
+	25: CopyLoc[6](loc5: u8)
+	26: LdU8(10)
+	27: Lt
+	28: BrFalse(34)
+B4:
+	29: MoveLoc[6](loc5: u8)
+	30: LdU8(48)
+	31: Add
+	32: StLoc[1](loc0: u8)
+	33: Branch(38)
+B5:
+	34: MoveLoc[6](loc5: u8)
+	35: LdU8(87)
+	36: Add
+	37: StLoc[1](loc0: u8)
+B6:
+	38: MoveLoc[1](loc0: u8)
+	39: StLoc[5](loc4: u8)
+	40: CopyLoc[9](loc8: u8)
+	41: LdU8(10)
+	42: Lt
+	43: BrFalse(49)
+B7:
+	44: MoveLoc[9](loc8: u8)
+	45: LdU8(48)
+	46: Add
+	47: StLoc[2](loc1: u8)
+	48: Branch(53)
+B8:
+	49: MoveLoc[9](loc8: u8)
+	50: LdU8(87)
+	51: Add
+	52: StLoc[2](loc1: u8)
+B9:
+	53: MoveLoc[2](loc1: u8)
+	54: StLoc[8](loc7: u8)
+	55: MutBorrowLoc[4](loc3: vector<u8>)
+	56: MoveLoc[5](loc4: u8)
+	57: VecPushBack(42)
+	58: MutBorrowLoc[4](loc3: vector<u8>)
+	59: MoveLoc[8](loc7: u8)
+	60: VecPushBack(42)
+	61: MoveLoc[7](loc6: u64)
+	62: LdU64(1)
+	63: Add
+	64: StLoc[7](loc6: u64)
+	65: Branch(6)
+B10:
+	66: MutBorrowLoc[10](loc9: vector<u8>)
+	67: MoveLoc[4](loc3: vector<u8>)
+	68: Call vector::append<u8>(&mut vector<u8>, vector<u8>)
+	69: MoveLoc[10](loc9: vector<u8>)
+	70: Call string::utf8(vector<u8>): String
+	71: Ret
+}
+
+emit_position_create_event(Arg0: &Position) {
+L1:	loc0: Option<ID>
+L2:	loc1: ID
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: Call object::id<Position>(&Position): ID
+	2: StLoc[2](loc1: ID)
+	3: MoveLoc[0](Arg0: &Position)
+	4: ImmBorrowField[0](Position.partner_id: Option<ID>)
+	5: ReadRef
+	6: StLoc[1](loc0: Option<ID>)
+	7: MoveLoc[2](loc1: ID)
+	8: MoveLoc[1](loc0: Option<ID>)
+	9: Pack[6](PositionCreateEvent)
+	10: Call events::emit_event<PositionCreateEvent>(PositionCreateEvent)
+	11: Ret
+}
+
+emit_position_update_event(Arg0: &Position) {
+L1:	loc0: Option<ID>
+L2:	loc1: ID
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: Call object::id<Position>(&Position): ID
+	2: StLoc[2](loc1: ID)
+	3: CopyLoc[0](Arg0: &Position)
+	4: ImmBorrowField[0](Position.partner_id: Option<ID>)
+	5: ReadRef
+	6: StLoc[1](loc0: Option<ID>)
+	7: MoveLoc[2](loc1: ID)
+	8: MoveLoc[1](loc0: Option<ID>)
+	9: CopyLoc[0](Arg0: &Position)
+	10: ImmBorrowField[1](Position.total_collateral_usd: Number)
+	11: ReadRef
+	12: CopyLoc[0](Arg0: &Position)
+	13: ImmBorrowField[2](Position.safe_collateral_usd: Number)
+	14: ReadRef
+	15: CopyLoc[0](Arg0: &Position)
+	16: ImmBorrowField[3](Position.liquidation_value: Number)
+	17: ReadRef
+	18: CopyLoc[0](Arg0: &Position)
+	19: ImmBorrowField[4](Position.additional_permissible_borrow_usd: Number)
+	20: ReadRef
+	21: CopyLoc[0](Arg0: &Position)
+	22: ImmBorrowField[5](Position.total_loan_usd: Number)
+	23: ReadRef
+	24: CopyLoc[0](Arg0: &Position)
+	25: ImmBorrowField[6](Position.spot_total_loan_usd: Number)
+	26: ReadRef
+	27: CopyLoc[0](Arg0: &Position)
+	28: ImmBorrowField[7](Position.weighted_total_loan_usd: Number)
+	29: ReadRef
+	30: CopyLoc[0](Arg0: &Position)
+	31: ImmBorrowField[8](Position.weighted_spot_total_loan_usd: Number)
+	32: ReadRef
+	33: CopyLoc[0](Arg0: &Position)
+	34: ImmBorrowField[9](Position.is_position_healthy: bool)
+	35: ReadRef
+	36: CopyLoc[0](Arg0: &Position)
+	37: ImmBorrowField[10](Position.is_position_liquidatable: bool)
+	38: ReadRef
+	39: CopyLoc[0](Arg0: &Position)
+	40: ImmBorrowField[11](Position.is_isolated_borrowed: bool)
+	41: ReadRef
+	42: MoveLoc[0](Arg0: &Position)
+	43: ImmBorrowField[12](Position.last_refreshed: u64)
+	44: ReadRef
+	45: Pack[7](PositionUpdateEvent)
+	46: Call events::emit_event<PositionUpdateEvent>(PositionUpdateEvent)
+	47: Ret
+}
+
+emit_position_collateral_update_event(Arg0: &Position, Arg1: &LpPositionCollateral) {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: Call object::id<Position>(&Position): ID
+	2: CopyLoc[1](Arg1: &LpPositionCollateral)
+	3: ImmBorrowField[13](LpPositionCollateral.pool_id: ID)
+	4: ReadRef
+	5: CopyLoc[1](Arg1: &LpPositionCollateral)
+	6: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	7: ReadRef
+	8: CopyLoc[1](Arg1: &LpPositionCollateral)
+	9: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	10: ReadRef
+	11: CopyLoc[1](Arg1: &LpPositionCollateral)
+	12: ImmBorrowField[16](LpPositionCollateral.safe_usd_value: Number)
+	13: ReadRef
+	14: CopyLoc[1](Arg1: &LpPositionCollateral)
+	15: ImmBorrowField[17](LpPositionCollateral.liquidation_value: Number)
+	16: ReadRef
+	17: CopyLoc[1](Arg1: &LpPositionCollateral)
+	18: ImmBorrowField[18](LpPositionCollateral.liquidity: u128)
+	19: ReadRef
+	20: CopyLoc[1](Arg1: &LpPositionCollateral)
+	21: ImmBorrowField[19](LpPositionCollateral.lp_type: u8)
+	22: ReadRef
+	23: MoveLoc[1](Arg1: &LpPositionCollateral)
+	24: ImmBorrowField[20](LpPositionCollateral.last_updated: u64)
+	25: ReadRef
+	26: Pack[8](LPPositionCollateralUpdateEvent)
+	27: Call events::emit_event<LPPositionCollateralUpdateEvent>(LPPositionCollateralUpdateEvent)
+	28: Ret
+}
+
+emit_token_collateral_update_event<Ty0>(Arg0: &Position, Arg1: &TokenCollateral<Ty0>) {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: Call object::id<Position>(&Position): ID
+	2: Call type_name::get<Ty0>(): TypeName
+	3: CopyLoc[1](Arg1: &TokenCollateral<Ty0>)
+	4: ImmBorrowFieldGeneric[0](TokenCollateral.market_id: u64)
+	5: ReadRef
+	6: CopyLoc[1](Arg1: &TokenCollateral<Ty0>)
+	7: ImmBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	8: Call balance::value<XToken<Ty0>>(&Balance<XToken<Ty0>>): u64
+	9: MoveLoc[1](Arg1: &TokenCollateral<Ty0>)
+	10: ImmBorrowFieldGeneric[2](TokenCollateral.reward_distributor_index: u64)
+	11: ReadRef
+	12: Pack[9](TokenCollateralUpdateEvent)
+	13: Call events::emit_event<TokenCollateralUpdateEvent>(TokenCollateralUpdateEvent)
+	14: Ret
+}
+
+emit_borrow_update_event(Arg0: &Position, Arg1: &Borrow) {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: Call object::id<Position>(&Position): ID
+	2: CopyLoc[1](Arg1: &Borrow)
+	3: ImmBorrowField[24](Borrow.coin_type: TypeName)
+	4: ReadRef
+	5: CopyLoc[1](Arg1: &Borrow)
+	6: ImmBorrowField[25](Borrow.market_id: u64)
+	7: ReadRef
+	8: CopyLoc[1](Arg1: &Borrow)
+	9: ImmBorrowField[26](Borrow.amount: u64)
+	10: ReadRef
+	11: CopyLoc[1](Arg1: &Borrow)
+	12: ImmBorrowField[27](Borrow.borrow_time: u64)
+	13: ReadRef
+	14: CopyLoc[1](Arg1: &Borrow)
+	15: ImmBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	16: ReadRef
+	17: MoveLoc[1](Arg1: &Borrow)
+	18: ImmBorrowField[29](Borrow.reward_distributor_index: u64)
+	19: ReadRef
+	20: Pack[10](BorrowUpdateEvent)
+	21: Call events::emit_event<BorrowUpdateEvent>(BorrowUpdateEvent)
+	22: Ret
+}
+
+public(friend) create_position(Arg0: address, Arg1: Option<ID>, Arg2: u8, Arg3: &mut TxContext): Position * PositionCap {
+L4:	loc0: Position
+L5:	loc1: PositionCap
+B0:
+	0: CopyLoc[2](Arg2: u8)
+	1: LdConst[11](u8: 0)
+	2: Eq
+	3: BrFalse(5)
+B1:
+	4: Branch(9)
+B2:
+	5: MoveLoc[3](Arg3: &mut TxContext)
+	6: Pop
+	7: LdConst[9](u64: 9)
+	8: Abort
+B3:
+	9: CopyLoc[3](Arg3: &mut TxContext)
+	10: Call object::new(&mut TxContext): UID
+	11: MoveLoc[1](Arg1: Option<ID>)
+	12: Call option::none<LpPositionCollateral>(): Option<LpPositionCollateral>
+	13: Call vec_map::empty<u64, u64>(): VecMap<u64, u64>
+	14: VecPack(63, 0)
+	15: LdU64(0)
+	16: Call math::from(u64): Number
+	17: LdU64(0)
+	18: Call math::from(u64): Number
+	19: LdU64(0)
+	20: Call math::from(u64): Number
+	21: LdU64(0)
+	22: Call math::from(u64): Number
+	23: LdU64(0)
+	24: Call math::from(u64): Number
+	25: LdU64(0)
+	26: Call math::from(u64): Number
+	27: LdU64(0)
+	28: Call math::from(u64): Number
+	29: LdU64(0)
+	30: Call math::from(u64): Number
+	31: LdTrue
+	32: LdFalse
+	33: VecPack(65, 0)
+	34: LdFalse
+	35: LdU64(0)
+	36: MoveLoc[2](Arg2: u8)
+	37: Pack[1](Position)
+	38: StLoc[4](loc0: Position)
+	39: MoveLoc[3](Arg3: &mut TxContext)
+	40: Call object::new(&mut TxContext): UID
+	41: ImmBorrowLoc[4](loc0: Position)
+	42: Call object::id<Position>(&Position): ID
+	43: MoveLoc[0](Arg0: address)
+	44: ImmBorrowLoc[4](loc0: Position)
+	45: ImmBorrowField[30](Position.id: UID)
+	46: Call object::uid_to_bytes(&UID): vector<u8>
+	47: Call create_nft_url(vector<u8>): String
+	48: Pack[0](PositionCap)
+	49: StLoc[5](loc1: PositionCap)
+	50: ImmBorrowLoc[4](loc0: Position)
+	51: Call emit_position_create_event(&Position)
+	52: MoveLoc[4](loc0: Position)
+	53: MoveLoc[5](loc1: PositionCap)
+	54: Ret
+}
+
+public(friend) add_bluefin_lp_collateral(Arg0: &mut Position, Arg1: Position, Arg2: u8, Arg3: u8, Arg4: ID, Arg5: &Clock) {
+L6:	loc0: LpPositionCollateral
+L7:	loc1: ID
+B0:
+	0: ImmBorrowLoc[1](Arg1: Position)
+	1: Call object::id<Position>(&Position): ID
+	2: StLoc[7](loc1: ID)
+	3: MoveLoc[4](Arg4: ID)
+	4: CopyLoc[7](loc1: ID)
+	5: LdU64(0)
+	6: Call math::from(u64): Number
+	7: LdU64(0)
+	8: Call math::from(u64): Number
+	9: LdU64(0)
+	10: Call math::from(u64): Number
+	11: LdU128(0)
+	12: MoveLoc[2](Arg2: u8)
+	13: MoveLoc[3](Arg3: u8)
+	14: LdConst[13](u64: 1000)
+	15: LdConst[14](u64: 500)
+	16: LdConst[10](u8: 20)
+	17: Pack[2](LpPositionCollateralConfig)
+	18: MoveLoc[5](Arg5: &Clock)
+	19: Call clock::timestamp_ms(&Clock): u64
+	20: LdConst[11](u8: 0)
+	21: Pack[3](LpPositionCollateral)
+	22: StLoc[6](loc0: LpPositionCollateral)
+	23: CopyLoc[0](Arg0: &mut Position)
+	24: FreezeRef
+	25: ImmBorrowLoc[6](loc0: LpPositionCollateral)
+	26: Call emit_position_collateral_update_event(&Position, &LpPositionCollateral)
+	27: CopyLoc[0](Arg0: &mut Position)
+	28: MutBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	29: MoveLoc[6](loc0: LpPositionCollateral)
+	30: Call option::fill<LpPositionCollateral>(&mut Option<LpPositionCollateral>, LpPositionCollateral)
+	31: MoveLoc[0](Arg0: &mut Position)
+	32: MutBorrowField[30](Position.id: UID)
+	33: MoveLoc[7](loc1: ID)
+	34: MoveLoc[1](Arg1: Position)
+	35: Call dynamic_field::add<ID, Position>(&mut UID, ID, Position)
+	36: Ret
+}
+
+public(friend) borrow_bluefin_lp_collateral(Arg0: &mut Position): Position {
+L1:	loc0: &LpPositionCollateral
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	3: StLoc[1](loc0: &LpPositionCollateral)
+	4: MoveLoc[0](Arg0: &mut Position)
+	5: MutBorrowField[30](Position.id: UID)
+	6: MoveLoc[1](loc0: &LpPositionCollateral)
+	7: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	8: ReadRef
+	9: Call dynamic_field::remove<ID, Position>(&mut UID, ID): Position
+	10: Ret
+}
+
+public(friend) return_bluefin_lp_collateral<Ty0, Ty1>(Arg0: &mut Position, Arg1: Position, Arg2: &Oracle, Arg3: &Pool<Ty0, Ty1>, Arg4: &Clock) {
+L5:	loc0: &LpPositionCollateral
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	3: StLoc[5](loc0: &LpPositionCollateral)
+	4: CopyLoc[5](loc0: &LpPositionCollateral)
+	5: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	6: ReadRef
+	7: ImmBorrowLoc[1](Arg1: Position)
+	8: Call object::id<Position>(&Position): ID
+	9: Eq
+	10: BrFalse(12)
+B1:
+	11: Branch(24)
+B2:
+	12: MoveLoc[0](Arg0: &mut Position)
+	13: Pop
+	14: MoveLoc[2](Arg2: &Oracle)
+	15: Pop
+	16: MoveLoc[5](loc0: &LpPositionCollateral)
+	17: Pop
+	18: MoveLoc[4](Arg4: &Clock)
+	19: Pop
+	20: MoveLoc[3](Arg3: &Pool<Ty0, Ty1>)
+	21: Pop
+	22: LdConst[8](u64: 8)
+	23: Abort
+B3:
+	24: CopyLoc[0](Arg0: &mut Position)
+	25: MutBorrowField[30](Position.id: UID)
+	26: MoveLoc[5](loc0: &LpPositionCollateral)
+	27: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	28: ReadRef
+	29: MoveLoc[1](Arg1: Position)
+	30: Call dynamic_field::add<ID, Position>(&mut UID, ID, Position)
+	31: MoveLoc[0](Arg0: &mut Position)
+	32: MoveLoc[3](Arg3: &Pool<Ty0, Ty1>)
+	33: MoveLoc[2](Arg2: &Oracle)
+	34: MoveLoc[4](Arg4: &Clock)
+	35: Call update_bluefin_lp_collateral_usd_value<Ty0, Ty1>(&mut Position, &Pool<Ty0, Ty1>, &Oracle, &Clock)
+	36: Ret
+}
+
+public(friend) remove_bluefin_lp_collateral(Arg0: &mut Position): Position {
+L1:	loc0: &LpPositionCollateral
+L2:	loc1: Position
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	3: StLoc[1](loc0: &LpPositionCollateral)
+	4: CopyLoc[0](Arg0: &mut Position)
+	5: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	6: VecLen(63)
+	7: LdU64(0)
+	8: Eq
+	9: BrFalse(11)
+B1:
+	10: Branch(17)
+B2:
+	11: MoveLoc[0](Arg0: &mut Position)
+	12: Pop
+	13: MoveLoc[1](loc0: &LpPositionCollateral)
+	14: Pop
+	15: LdConst[4](u64: 4)
+	16: Abort
+B3:
+	17: CopyLoc[0](Arg0: &mut Position)
+	18: MutBorrowField[30](Position.id: UID)
+	19: MoveLoc[1](loc0: &LpPositionCollateral)
+	20: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	21: ReadRef
+	22: Call dynamic_field::remove<ID, Position>(&mut UID, ID): Position
+	23: StLoc[2](loc1: Position)
+	24: MoveLoc[0](Arg0: &mut Position)
+	25: MutBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	26: Call option::extract<LpPositionCollateral>(&mut Option<LpPositionCollateral>): LpPositionCollateral
+	27: Unpack[3](LpPositionCollateral)
+	28: Pop
+	29: Pop
+	30: Pop
+	31: Pop
+	32: Pop
+	33: Pop
+	34: Pop
+	35: Pop
+	36: Pop
+	37: MoveLoc[2](loc1: Position)
+	38: Ret
+}
+
+public(friend) update_lp_position_config(Arg0: &mut Position, Arg1: u8, Arg2: u8, Arg3: u64, Arg4: u64, Arg5: u8) {
+L6:	loc0: &mut LpPositionCollateral
+B0:
+	0: MoveLoc[0](Arg0: &mut Position)
+	1: MutBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow_mut<LpPositionCollateral>(&mut Option<LpPositionCollateral>): &mut LpPositionCollateral
+	3: StLoc[6](loc0: &mut LpPositionCollateral)
+	4: MoveLoc[1](Arg1: u8)
+	5: CopyLoc[6](loc0: &mut LpPositionCollateral)
+	6: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	7: MutBorrowField[34](LpPositionCollateralConfig.safe_collateral_ratio: u8)
+	8: WriteRef
+	9: MoveLoc[2](Arg2: u8)
+	10: CopyLoc[6](loc0: &mut LpPositionCollateral)
+	11: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	12: MutBorrowField[35](LpPositionCollateralConfig.liquidation_threshold: u8)
+	13: WriteRef
+	14: MoveLoc[3](Arg3: u64)
+	15: CopyLoc[6](loc0: &mut LpPositionCollateral)
+	16: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	17: MutBorrowField[36](LpPositionCollateralConfig.liquidation_bonus: u64)
+	18: WriteRef
+	19: MoveLoc[4](Arg4: u64)
+	20: CopyLoc[6](loc0: &mut LpPositionCollateral)
+	21: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	22: MutBorrowField[37](LpPositionCollateralConfig.liquidation_fee: u64)
+	23: WriteRef
+	24: MoveLoc[5](Arg5: u8)
+	25: MoveLoc[6](loc0: &mut LpPositionCollateral)
+	26: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	27: MutBorrowField[38](LpPositionCollateralConfig.close_factor_percentage: u8)
+	28: WriteRef
+	29: Ret
+}
+
+public(friend) update_bluefin_lp_collateral_usd_value<Ty0, Ty1>(Arg0: &mut Position, Arg1: &Pool<Ty0, Ty1>, Arg2: &Oracle, Arg3: &Clock) {
+L4:	loc0: PriceIdentifier
+L5:	loc1: &Oracle
+L6:	loc2: PriceIdentifier
+L7:	loc3: &Oracle
+L8:	loc4: Number
+L9:	loc5: Number
+L10:	loc6: &mut LpPositionCollateral
+L11:	loc7: &LpPositionCollateral
+L12:	loc8: Number
+L13:	loc9: &Position
+L14:	loc10: Number
+L15:	loc11: Number
+L16:	loc12: u64
+L17:	loc13: u64
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: MutBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow_mut<LpPositionCollateral>(&mut Option<LpPositionCollateral>): &mut LpPositionCollateral
+	3: StLoc[10](loc6: &mut LpPositionCollateral)
+	4: CopyLoc[0](Arg0: &mut Position)
+	5: ImmBorrowField[30](Position.id: UID)
+	6: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	7: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	8: ReadRef
+	9: Call dynamic_field::borrow<ID, Position>(&UID, ID): &Position
+	10: StLoc[13](loc9: &Position)
+	11: CopyLoc[13](loc9: &Position)
+	12: Call 1position::pool_id(&Position): ID
+	13: CopyLoc[1](Arg1: &Pool<Ty0, Ty1>)
+	14: Call object::id<Pool<Ty0, Ty1>>(&Pool<Ty0, Ty1>): ID
+	15: Eq
+	16: BrFalse(18)
+B1:
+	17: Branch(32)
+B2:
+	18: MoveLoc[0](Arg0: &mut Position)
+	19: Pop
+	20: MoveLoc[1](Arg1: &Pool<Ty0, Ty1>)
+	21: Pop
+	22: MoveLoc[2](Arg2: &Oracle)
+	23: Pop
+	24: MoveLoc[13](loc9: &Position)
+	25: Pop
+	26: MoveLoc[10](loc6: &mut LpPositionCollateral)
+	27: Pop
+	28: MoveLoc[3](Arg3: &Clock)
+	29: Pop
+	30: LdConst[5](u64: 5)
+	31: Abort
+B3:
+	32: CopyLoc[13](loc9: &Position)
+	33: Call 1position::lower_tick(&Position): I32
+	34: CopyLoc[13](loc9: &Position)
+	35: Call 1position::upper_tick(&Position): I32
+	36: CopyLoc[1](Arg1: &Pool<Ty0, Ty1>)
+	37: Call pool::current_tick_index<Ty0, Ty1>(&Pool<Ty0, Ty1>): I32
+	38: MoveLoc[1](Arg1: &Pool<Ty0, Ty1>)
+	39: Call pool::current_sqrt_price<Ty0, Ty1>(&Pool<Ty0, Ty1>): u128
+	40: CopyLoc[13](loc9: &Position)
+	41: Call 1position::liquidity(&Position): u128
+	42: LdFalse
+	43: Call clmm_math::get_amount_by_liquidity(I32, I32, I32, u128, u128, bool): u64 * u64
+	44: StLoc[17](loc13: u64)
+	45: StLoc[16](loc12: u64)
+	46: CopyLoc[2](Arg2: &Oracle)
+	47: StLoc[5](loc1: &Oracle)
+	48: CopyLoc[2](Arg2: &Oracle)
+	49: Call type_name::get<Ty0>(): TypeName
+	50: Call oracle::get_price_identifier(&Oracle, TypeName): PriceIdentifier
+	51: StLoc[4](loc0: PriceIdentifier)
+	52: MoveLoc[5](loc1: &Oracle)
+	53: ImmBorrowLoc[4](loc0: PriceIdentifier)
+	54: Call oracle::get_price(&Oracle, &PriceIdentifier): Number * Number
+	55: StLoc[8](loc4: Number)
+	56: StLoc[14](loc10: Number)
+	57: CopyLoc[2](Arg2: &Oracle)
+	58: StLoc[7](loc3: &Oracle)
+	59: MoveLoc[2](Arg2: &Oracle)
+	60: Call type_name::get<Ty1>(): TypeName
+	61: Call oracle::get_price_identifier(&Oracle, TypeName): PriceIdentifier
+	62: StLoc[6](loc2: PriceIdentifier)
+	63: MoveLoc[7](loc3: &Oracle)
+	64: ImmBorrowLoc[6](loc2: PriceIdentifier)
+	65: Call oracle::get_price(&Oracle, &PriceIdentifier): Number * Number
+	66: StLoc[9](loc5: Number)
+	67: StLoc[15](loc11: Number)
+	68: CopyLoc[16](loc12: u64)
+	69: Call math::from(u64): Number
+	70: CopyLoc[14](loc10: Number)
+	71: MoveLoc[8](loc4: Number)
+	72: Call math::min(Number, Number): Number
+	73: Call math::mul(Number, Number): Number
+	74: CopyLoc[17](loc13: u64)
+	75: Call math::from(u64): Number
+	76: CopyLoc[15](loc11: Number)
+	77: MoveLoc[9](loc5: Number)
+	78: Call math::min(Number, Number): Number
+	79: Call math::mul(Number, Number): Number
+	80: Call math::add(Number, Number): Number
+	81: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	82: MutBorrowField[15](LpPositionCollateral.usd_value: Number)
+	83: WriteRef
+	84: MoveLoc[16](loc12: u64)
+	85: Call math::from(u64): Number
+	86: MoveLoc[14](loc10: Number)
+	87: Call math::mul(Number, Number): Number
+	88: MoveLoc[17](loc13: u64)
+	89: Call math::from(u64): Number
+	90: MoveLoc[15](loc11: Number)
+	91: Call math::mul(Number, Number): Number
+	92: Call math::add(Number, Number): Number
+	93: StLoc[12](loc8: Number)
+	94: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	95: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	96: ReadRef
+	97: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	98: ImmBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	99: ImmBorrowField[34](LpPositionCollateralConfig.safe_collateral_ratio: u8)
+	100: ReadRef
+	101: CastU16
+	102: Call math::from_percentage(u16): Number
+	103: Call math::mul(Number, Number): Number
+	104: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	105: MutBorrowField[16](LpPositionCollateral.safe_usd_value: Number)
+	106: WriteRef
+	107: MoveLoc[12](loc8: Number)
+	108: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	109: ImmBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	110: ImmBorrowField[35](LpPositionCollateralConfig.liquidation_threshold: u8)
+	111: ReadRef
+	112: CastU16
+	113: Call math::from_percentage(u16): Number
+	114: Call math::mul(Number, Number): Number
+	115: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	116: MutBorrowField[17](LpPositionCollateral.liquidation_value: Number)
+	117: WriteRef
+	118: MoveLoc[13](loc9: &Position)
+	119: Call 1position::liquidity(&Position): u128
+	120: CopyLoc[10](loc6: &mut LpPositionCollateral)
+	121: MutBorrowField[18](LpPositionCollateral.liquidity: u128)
+	122: WriteRef
+	123: MoveLoc[3](Arg3: &Clock)
+	124: Call clock::timestamp_ms(&Clock): u64
+	125: MoveLoc[10](loc6: &mut LpPositionCollateral)
+	126: MutBorrowField[20](LpPositionCollateral.last_updated: u64)
+	127: WriteRef
+	128: CopyLoc[0](Arg0: &mut Position)
+	129: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	130: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	131: StLoc[11](loc7: &LpPositionCollateral)
+	132: MoveLoc[0](Arg0: &mut Position)
+	133: FreezeRef
+	134: MoveLoc[11](loc7: &LpPositionCollateral)
+	135: Call emit_position_collateral_update_event(&Position, &LpPositionCollateral)
+	136: Ret
+}
+
+public(friend) update_and_get_borrow_amount(Arg0: &mut Borrow, Arg1: &Market): u64 {
+B0:
+	0: CopyLoc[1](Arg1: &Market)
+	1: Call market::get_last_auto_compound(&Market): u64
+	2: CopyLoc[0](Arg0: &mut Borrow)
+	3: ImmBorrowField[27](Borrow.borrow_time: u64)
+	4: ReadRef
+	5: Eq
+	6: BrFalse(13)
+B1:
+	7: MoveLoc[1](Arg1: &Market)
+	8: Pop
+	9: MoveLoc[0](Arg0: &mut Borrow)
+	10: ImmBorrowField[26](Borrow.amount: u64)
+	11: ReadRef
+	12: Ret
+B2:
+	13: CopyLoc[0](Arg0: &mut Borrow)
+	14: ImmBorrowField[26](Borrow.amount: u64)
+	15: ReadRef
+	16: Call math::from(u64): Number
+	17: CopyLoc[1](Arg1: &Market)
+	18: Call market::get_compounded_interest(&Market): Number
+	19: Call math::mul(Number, Number): Number
+	20: CopyLoc[0](Arg0: &mut Borrow)
+	21: ImmBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	22: ReadRef
+	23: Call math::div(Number, Number): Number
+	24: Call math::to_u64(Number): u64
+	25: CopyLoc[0](Arg0: &mut Borrow)
+	26: MutBorrowField[26](Borrow.amount: u64)
+	27: WriteRef
+	28: CopyLoc[1](Arg1: &Market)
+	29: Call market::get_last_auto_compound(&Market): u64
+	30: CopyLoc[0](Arg0: &mut Borrow)
+	31: MutBorrowField[27](Borrow.borrow_time: u64)
+	32: WriteRef
+	33: MoveLoc[1](Arg1: &Market)
+	34: Call market::get_compounded_interest(&Market): Number
+	35: CopyLoc[0](Arg0: &mut Borrow)
+	36: MutBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	37: WriteRef
+	38: MoveLoc[0](Arg0: &mut Borrow)
+	39: ImmBorrowField[26](Borrow.amount: u64)
+	40: ReadRef
+	41: Ret
+}
+
+public(friend) update_and_get_borrow_value(Arg0: &mut Borrow, Arg1: &mut Market, Arg2: &Oracle, Arg3: &Clock): Number * Number {
+L4:	loc0: u64
+L5:	loc1: Number
+L6:	loc2: Number
+B0:
+	0: CopyLoc[1](Arg1: &mut Market)
+	1: CopyLoc[2](Arg2: &Oracle)
+	2: MoveLoc[3](Arg3: &Clock)
+	3: Call market::refresh_with_price(&mut Market, &Oracle, &Clock)
+	4: CopyLoc[1](Arg1: &mut Market)
+	5: FreezeRef
+	6: MoveLoc[2](Arg2: &Oracle)
+	7: Call market::get_token_price(&Market, &Oracle): Number * Number
+	8: StLoc[5](loc1: Number)
+	9: StLoc[6](loc2: Number)
+	10: MoveLoc[0](Arg0: &mut Borrow)
+	11: MoveLoc[1](Arg1: &mut Market)
+	12: FreezeRef
+	13: Call update_and_get_borrow_amount(&mut Borrow, &Market): u64
+	14: StLoc[4](loc0: u64)
+	15: CopyLoc[4](loc0: u64)
+	16: Call math::from(u64): Number
+	17: CopyLoc[6](loc2: Number)
+	18: Call math::mul(Number, Number): Number
+	19: MoveLoc[4](loc0: u64)
+	20: Call math::from(u64): Number
+	21: MoveLoc[6](loc2: Number)
+	22: MoveLoc[5](loc1: Number)
+	23: Call math::max(Number, Number): Number
+	24: Call math::mul(Number, Number): Number
+	25: Ret
+}
+
+public(friend) refresh(Arg0: &mut Position, Arg1: &mut Table<u64, Market>, Arg2: &Oracle, Arg3: &Clock) {
+L4:	loc0: Number
+L5:	loc1: &u64
+L6:	loc2: &mut Borrow
+L7:	loc3: &mut RewardDistributor
+L8:	loc4: Number
+L9:	loc5: Number
+L10:	loc6: Number
+L11:	loc7: Number
+L12:	loc8: u64
+L13:	loc9: &mut RewardDistributor
+L14:	loc10: Number
+L15:	loc11: u64
+L16:	loc12: u64
+L17:	loc13: Number
+L18:	loc14: &LpPositionCollateral
+L19:	loc15: &LpPositionCollateral
+L20:	loc16: Number
+L21:	loc17: &mut Market
+L22:	loc18: &mut Market
+L23:	loc19: &mut Market
+L24:	loc20: &u64
+L25:	loc21: ID
+L26:	loc22: Number
+L27:	loc23: Number
+L28:	loc24: Number
+L29:	loc25: Number
+L30:	loc26: Number
+L31:	loc27: Number
+L32:	loc28: Number
+L33:	loc29: u64
+L34:	loc30: u64
+L35:	loc31: Number
+L36:	loc32: Number
+L37:	loc33: Number
+L38:	loc34: Number
+B0:
+	0: CopyLoc[3](Arg3: &Clock)
+	1: Call clock::timestamp_ms(&Clock): u64
+	2: StLoc[12](loc8: u64)
+	3: CopyLoc[0](Arg0: &mut Position)
+	4: FreezeRef
+	5: Call object::id<Position>(&Position): ID
+	6: StLoc[25](loc21: ID)
+	7: CopyLoc[0](Arg0: &mut Position)
+	8: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	9: Call option::is_some<LpPositionCollateral>(&Option<LpPositionCollateral>): bool
+	10: BrFalse(34)
+B1:
+	11: CopyLoc[0](Arg0: &mut Position)
+	12: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	13: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	14: StLoc[18](loc14: &LpPositionCollateral)
+	15: CopyLoc[12](loc8: u64)
+	16: MoveLoc[18](loc14: &LpPositionCollateral)
+	17: ImmBorrowField[20](LpPositionCollateral.last_updated: u64)
+	18: ReadRef
+	19: Sub
+	20: LdConst[12](u64: 20)
+	21: Le
+	22: BrFalse(24)
+B2:
+	23: Branch(34)
+B3:
+	24: MoveLoc[0](Arg0: &mut Position)
+	25: Pop
+	26: MoveLoc[2](Arg2: &Oracle)
+	27: Pop
+	28: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	29: Pop
+	30: MoveLoc[3](Arg3: &Clock)
+	31: Pop
+	32: LdConst[7](u64: 7)
+	33: Abort
+B4:
+	34: LdU64(0)
+	35: Call math::from(u64): Number
+	36: StLoc[30](loc26: Number)
+	37: LdU64(0)
+	38: Call math::from(u64): Number
+	39: StLoc[17](loc13: Number)
+	40: LdU64(0)
+	41: Call math::from(u64): Number
+	42: StLoc[31](loc27: Number)
+	43: LdU64(0)
+	44: Call math::from(u64): Number
+	45: StLoc[27](loc23: Number)
+	46: LdU64(0)
+	47: Call math::from(u64): Number
+	48: StLoc[38](loc34: Number)
+	49: LdU64(0)
+	50: Call math::from(u64): Number
+	51: StLoc[37](loc33: Number)
+	52: LdU64(0)
+	53: Call math::from(u64): Number
+	54: StLoc[32](loc28: Number)
+	55: CopyLoc[0](Arg0: &mut Position)
+	56: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	57: Call option::is_some<LpPositionCollateral>(&Option<LpPositionCollateral>): bool
+	58: BrFalse(81)
+B5:
+	59: CopyLoc[0](Arg0: &mut Position)
+	60: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	61: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	62: StLoc[19](loc15: &LpPositionCollateral)
+	63: MoveLoc[30](loc26: Number)
+	64: CopyLoc[19](loc15: &LpPositionCollateral)
+	65: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	66: ReadRef
+	67: Call math::add(Number, Number): Number
+	68: StLoc[30](loc26: Number)
+	69: MoveLoc[32](loc28: Number)
+	70: CopyLoc[19](loc15: &LpPositionCollateral)
+	71: ImmBorrowField[16](LpPositionCollateral.safe_usd_value: Number)
+	72: ReadRef
+	73: Call math::add(Number, Number): Number
+	74: StLoc[32](loc28: Number)
+	75: MoveLoc[17](loc13: Number)
+	76: MoveLoc[19](loc15: &LpPositionCollateral)
+	77: ImmBorrowField[17](LpPositionCollateral.liquidation_value: Number)
+	78: ReadRef
+	79: Call math::add(Number, Number): Number
+	80: StLoc[17](loc13: Number)
+B6:
+	81: LdU64(0)
+	82: StLoc[15](loc11: u64)
+B7:
+	83: CopyLoc[15](loc11: u64)
+	84: CopyLoc[0](Arg0: &mut Position)
+	85: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	86: Call vec_map::size<u64, u64>(&VecMap<u64, u64>): u64
+	87: Lt
+	88: BrFalse(167)
+B8:
+	89: CopyLoc[0](Arg0: &mut Position)
+	90: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	91: CopyLoc[15](loc11: u64)
+	92: Call vec_map::get_entry_by_idx<u64, u64>(&VecMap<u64, u64>, u64): &u64 * &u64
+	93: StLoc[5](loc1: &u64)
+	94: StLoc[24](loc20: &u64)
+	95: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	96: MoveLoc[24](loc20: &u64)
+	97: ReadRef
+	98: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	99: StLoc[21](loc17: &mut Market)
+	100: CopyLoc[21](loc17: &mut Market)
+	101: CopyLoc[2](Arg2: &Oracle)
+	102: CopyLoc[3](Arg3: &Clock)
+	103: Call market::refresh_with_price(&mut Market, &Oracle, &Clock)
+	104: CopyLoc[5](loc1: &u64)
+	105: ReadRef
+	106: Call math::from(u64): Number
+	107: CopyLoc[21](loc17: &mut Market)
+	108: FreezeRef
+	109: CopyLoc[2](Arg2: &Oracle)
+	110: Call market::get_xtoken_spot_price(&Market, &Oracle): Number
+	111: Call math::mul(Number, Number): Number
+	112: StLoc[10](loc6: Number)
+	113: MoveLoc[5](loc1: &u64)
+	114: ReadRef
+	115: Call math::from(u64): Number
+	116: CopyLoc[21](loc17: &mut Market)
+	117: FreezeRef
+	118: CopyLoc[2](Arg2: &Oracle)
+	119: Call market::get_xtoken_price(&Market, &Oracle): Number
+	120: Call math::mul(Number, Number): Number
+	121: StLoc[11](loc7: Number)
+	122: MoveLoc[30](loc26: Number)
+	123: CopyLoc[11](loc7: Number)
+	124: Call math::add(Number, Number): Number
+	125: StLoc[30](loc26: Number)
+	126: CopyLoc[21](loc17: &mut Market)
+	127: FreezeRef
+	128: MoveLoc[10](loc6: Number)
+	129: Call market::get_liquidation_value(&Market, Number): Number
+	130: StLoc[29](loc25: Number)
+	131: MoveLoc[17](loc13: Number)
+	132: MoveLoc[29](loc25: Number)
+	133: Call math::add(Number, Number): Number
+	134: StLoc[17](loc13: Number)
+	135: CopyLoc[21](loc17: &mut Market)
+	136: FreezeRef
+	137: MoveLoc[11](loc7: Number)
+	138: Call market::get_ltv_value(&Market, Number): Number
+	139: StLoc[20](loc16: Number)
+	140: MoveLoc[32](loc28: Number)
+	141: MoveLoc[20](loc16: Number)
+	142: Call math::add(Number, Number): Number
+	143: StLoc[32](loc28: Number)
+	144: MoveLoc[21](loc17: &mut Market)
+	145: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	146: StLoc[13](loc9: &mut RewardDistributor)
+	147: CopyLoc[0](Arg0: &mut Position)
+	148: CopyLoc[13](loc9: &mut RewardDistributor)
+	149: CopyLoc[3](Arg3: &Clock)
+	150: LdTrue
+	151: Call find_or_add_user_reward_distributor(&mut Position, &mut RewardDistributor, &Clock, bool): u64
+	152: StLoc[33](loc29: u64)
+	153: CopyLoc[0](Arg0: &mut Position)
+	154: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	155: MoveLoc[33](loc29: u64)
+	156: VecMutBorrow(65)
+	157: MoveLoc[13](loc9: &mut RewardDistributor)
+	158: LdFalse
+	159: CopyLoc[25](loc21: ID)
+	160: CopyLoc[3](Arg3: &Clock)
+	161: Call rewards::refresh_user_reward_distributor(&mut UserRewardDistributor, &mut RewardDistributor, bool, ID, &Clock)
+	162: MoveLoc[15](loc11: u64)
+	163: LdU64(1)
+	164: Add
+	165: StLoc[15](loc11: u64)
+	166: Branch(83)
+B9:
+	167: LdU64(0)
+	168: StLoc[16](loc12: u64)
+B10:
+	169: CopyLoc[16](loc12: u64)
+	170: CopyLoc[0](Arg0: &mut Position)
+	171: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	172: VecLen(63)
+	173: Lt
+	174: BrFalse(256)
+B11:
+	175: CopyLoc[0](Arg0: &mut Position)
+	176: MutBorrowField[32](Position.loans: vector<Borrow>)
+	177: CopyLoc[16](loc12: u64)
+	178: VecMutBorrow(63)
+	179: StLoc[6](loc2: &mut Borrow)
+	180: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	181: CopyLoc[6](loc2: &mut Borrow)
+	182: ImmBorrowField[25](Borrow.market_id: u64)
+	183: ReadRef
+	184: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	185: StLoc[22](loc18: &mut Market)
+	186: CopyLoc[6](loc2: &mut Borrow)
+	187: MoveLoc[22](loc18: &mut Market)
+	188: CopyLoc[2](Arg2: &Oracle)
+	189: CopyLoc[3](Arg3: &Clock)
+	190: Call update_and_get_borrow_value(&mut Borrow, &mut Market, &Oracle, &Clock): Number * Number
+	191: StLoc[14](loc10: Number)
+	192: StLoc[28](loc24: Number)
+	193: CopyLoc[28](loc24: Number)
+	194: MoveLoc[28](loc24: Number)
+	195: MoveLoc[14](loc10: Number)
+	196: Call math::max(Number, Number): Number
+	197: StLoc[8](loc4: Number)
+	198: StLoc[26](loc22: Number)
+	199: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	200: MoveLoc[6](loc2: &mut Borrow)
+	201: ImmBorrowField[25](Borrow.market_id: u64)
+	202: ReadRef
+	203: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	204: StLoc[23](loc19: &mut Market)
+	205: CopyLoc[23](loc19: &mut Market)
+	206: FreezeRef
+	207: Call market::get_borrow_weight(&Market): Number
+	208: StLoc[9](loc5: Number)
+	209: CopyLoc[8](loc4: Number)
+	210: CopyLoc[9](loc5: Number)
+	211: Call math::mul(Number, Number): Number
+	212: StLoc[35](loc31: Number)
+	213: CopyLoc[26](loc22: Number)
+	214: MoveLoc[9](loc5: Number)
+	215: Call math::mul(Number, Number): Number
+	216: StLoc[36](loc32: Number)
+	217: MoveLoc[31](loc27: Number)
+	218: MoveLoc[8](loc4: Number)
+	219: Call math::add(Number, Number): Number
+	220: StLoc[31](loc27: Number)
+	221: MoveLoc[27](loc23: Number)
+	222: MoveLoc[26](loc22: Number)
+	223: Call math::add(Number, Number): Number
+	224: StLoc[27](loc23: Number)
+	225: MoveLoc[38](loc34: Number)
+	226: MoveLoc[35](loc31: Number)
+	227: Call math::add(Number, Number): Number
+	228: StLoc[38](loc34: Number)
+	229: MoveLoc[37](loc33: Number)
+	230: MoveLoc[36](loc32: Number)
+	231: Call math::add(Number, Number): Number
+	232: StLoc[37](loc33: Number)
+	233: MoveLoc[23](loc19: &mut Market)
+	234: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	235: StLoc[7](loc3: &mut RewardDistributor)
+	236: CopyLoc[0](Arg0: &mut Position)
+	237: CopyLoc[7](loc3: &mut RewardDistributor)
+	238: CopyLoc[3](Arg3: &Clock)
+	239: LdFalse
+	240: Call find_or_add_user_reward_distributor(&mut Position, &mut RewardDistributor, &Clock, bool): u64
+	241: StLoc[34](loc30: u64)
+	242: CopyLoc[0](Arg0: &mut Position)
+	243: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	244: MoveLoc[34](loc30: u64)
+	245: VecMutBorrow(65)
+	246: MoveLoc[7](loc3: &mut RewardDistributor)
+	247: LdFalse
+	248: CopyLoc[25](loc21: ID)
+	249: CopyLoc[3](Arg3: &Clock)
+	250: Call rewards::refresh_user_reward_distributor(&mut UserRewardDistributor, &mut RewardDistributor, bool, ID, &Clock)
+	251: MoveLoc[16](loc12: u64)
+	252: LdU64(1)
+	253: Add
+	254: StLoc[16](loc12: u64)
+	255: Branch(169)
+B12:
+	256: MoveLoc[2](Arg2: &Oracle)
+	257: Pop
+	258: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	259: Pop
+	260: MoveLoc[3](Arg3: &Clock)
+	261: Pop
+	262: MoveLoc[30](loc26: Number)
+	263: CopyLoc[0](Arg0: &mut Position)
+	264: MutBorrowField[1](Position.total_collateral_usd: Number)
+	265: WriteRef
+	266: CopyLoc[17](loc13: Number)
+	267: CopyLoc[0](Arg0: &mut Position)
+	268: MutBorrowField[3](Position.liquidation_value: Number)
+	269: WriteRef
+	270: MoveLoc[31](loc27: Number)
+	271: CopyLoc[0](Arg0: &mut Position)
+	272: MutBorrowField[5](Position.total_loan_usd: Number)
+	273: WriteRef
+	274: MoveLoc[27](loc23: Number)
+	275: CopyLoc[0](Arg0: &mut Position)
+	276: MutBorrowField[6](Position.spot_total_loan_usd: Number)
+	277: WriteRef
+	278: CopyLoc[38](loc34: Number)
+	279: CopyLoc[0](Arg0: &mut Position)
+	280: MutBorrowField[7](Position.weighted_total_loan_usd: Number)
+	281: WriteRef
+	282: CopyLoc[37](loc33: Number)
+	283: CopyLoc[0](Arg0: &mut Position)
+	284: MutBorrowField[8](Position.weighted_spot_total_loan_usd: Number)
+	285: WriteRef
+	286: CopyLoc[38](loc34: Number)
+	287: CopyLoc[32](loc28: Number)
+	288: Call math::gt(Number, Number): bool
+	289: BrFalse(294)
+B13:
+	290: LdU64(0)
+	291: Call math::from(u64): Number
+	292: StLoc[4](loc0: Number)
+	293: Branch(299)
+B14:
+	294: CopyLoc[32](loc28: Number)
+	295: CopyLoc[38](loc34: Number)
+	296: Call math::sub(Number, Number): Number
+	297: StLoc[4](loc0: Number)
+	298: Branch(299)
+B15:
+	299: MoveLoc[4](loc0: Number)
+	300: CopyLoc[0](Arg0: &mut Position)
+	301: MutBorrowField[4](Position.additional_permissible_borrow_usd: Number)
+	302: WriteRef
+	303: CopyLoc[32](loc28: Number)
+	304: CopyLoc[0](Arg0: &mut Position)
+	305: MutBorrowField[2](Position.safe_collateral_usd: Number)
+	306: WriteRef
+	307: MoveLoc[37](loc33: Number)
+	308: MoveLoc[17](loc13: Number)
+	309: Call math::gt(Number, Number): bool
+	310: CopyLoc[0](Arg0: &mut Position)
+	311: MutBorrowField[10](Position.is_position_liquidatable: bool)
+	312: WriteRef
+	313: MoveLoc[32](loc28: Number)
+	314: MoveLoc[38](loc34: Number)
+	315: Call math::ge(Number, Number): bool
+	316: CopyLoc[0](Arg0: &mut Position)
+	317: MutBorrowField[9](Position.is_position_healthy: bool)
+	318: WriteRef
+	319: MoveLoc[12](loc8: u64)
+	320: CopyLoc[0](Arg0: &mut Position)
+	321: MutBorrowField[12](Position.last_refreshed: u64)
+	322: WriteRef
+	323: MoveLoc[0](Arg0: &mut Position)
+	324: FreezeRef
+	325: Call emit_position_update_event(&Position)
+	326: Ret
+}
+
+public(friend) add_token_collateral<Ty0>(Arg0: &mut Position, Arg1: u64, Arg2: &mut Market, Arg3: Balance<XToken<Ty0>>, Arg4: &Clock) {
+L5:	loc0: ID
+L6:	loc1: &mut TokenCollateral<Ty0>
+L7:	loc2: &TokenCollateral<Ty0>
+L8:	loc3: TokenCollateral<Ty0>
+L9:	loc4: u64
+B0:
+	0: ImmBorrowLoc[3](Arg3: Balance<XToken<Ty0>>)
+	1: Call balance::value<XToken<Ty0>>(&Balance<XToken<Ty0>>): u64
+	2: StLoc[9](loc4: u64)
+	3: CopyLoc[0](Arg0: &mut Position)
+	4: FreezeRef
+	5: Call object::id<Position>(&Position): ID
+	6: StLoc[5](loc0: ID)
+	7: CopyLoc[0](Arg0: &mut Position)
+	8: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	9: ImmBorrowLoc[1](Arg1: u64)
+	10: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	11: BrFalse(54)
+B1:
+	12: CopyLoc[0](Arg0: &mut Position)
+	13: MutBorrowField[30](Position.id: UID)
+	14: CopyLoc[1](Arg1: u64)
+	15: Call dynamic_field::borrow_mut<u64, TokenCollateral<Ty0>>(&mut UID, u64): &mut TokenCollateral<Ty0>
+	16: StLoc[6](loc1: &mut TokenCollateral<Ty0>)
+	17: CopyLoc[6](loc1: &mut TokenCollateral<Ty0>)
+	18: MutBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	19: MoveLoc[3](Arg3: Balance<XToken<Ty0>>)
+	20: Call balance::join<XToken<Ty0>>(&mut Balance<XToken<Ty0>>, Balance<XToken<Ty0>>): u64
+	21: Pop
+	22: CopyLoc[6](loc1: &mut TokenCollateral<Ty0>)
+	23: ImmBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	24: Call balance::value<XToken<Ty0>>(&Balance<XToken<Ty0>>): u64
+	25: StLoc[9](loc4: u64)
+	26: CopyLoc[0](Arg0: &mut Position)
+	27: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	28: MoveLoc[6](loc1: &mut TokenCollateral<Ty0>)
+	29: ImmBorrowFieldGeneric[2](TokenCollateral.reward_distributor_index: u64)
+	30: ReadRef
+	31: VecMutBorrow(65)
+	32: MoveLoc[2](Arg2: &mut Market)
+	33: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	34: MoveLoc[5](loc0: ID)
+	35: CopyLoc[9](loc4: u64)
+	36: MoveLoc[4](Arg4: &Clock)
+	37: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	38: CopyLoc[0](Arg0: &mut Position)
+	39: MutBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	40: ImmBorrowLoc[1](Arg1: u64)
+	41: Call vec_map::remove<u64, u64>(&mut VecMap<u64, u64>, &u64): u64 * u64
+	42: Pop
+	43: Pop
+	44: CopyLoc[0](Arg0: &mut Position)
+	45: ImmBorrowField[30](Position.id: UID)
+	46: CopyLoc[1](Arg1: u64)
+	47: Call dynamic_field::borrow<u64, TokenCollateral<Ty0>>(&UID, u64): &TokenCollateral<Ty0>
+	48: StLoc[7](loc2: &TokenCollateral<Ty0>)
+	49: CopyLoc[0](Arg0: &mut Position)
+	50: FreezeRef
+	51: MoveLoc[7](loc2: &TokenCollateral<Ty0>)
+	52: Call emit_token_collateral_update_event<Ty0>(&Position, &TokenCollateral<Ty0>)
+	53: Branch(85)
+B2:
+	54: CopyLoc[1](Arg1: u64)
+	55: MoveLoc[3](Arg3: Balance<XToken<Ty0>>)
+	56: CopyLoc[0](Arg0: &mut Position)
+	57: CopyLoc[2](Arg2: &mut Market)
+	58: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	59: CopyLoc[4](Arg4: &Clock)
+	60: LdTrue
+	61: Call find_or_add_user_reward_distributor(&mut Position, &mut RewardDistributor, &Clock, bool): u64
+	62: PackGeneric[0](TokenCollateral<Ty0>)
+	63: StLoc[8](loc3: TokenCollateral<Ty0>)
+	64: CopyLoc[0](Arg0: &mut Position)
+	65: FreezeRef
+	66: ImmBorrowLoc[8](loc3: TokenCollateral<Ty0>)
+	67: Call emit_token_collateral_update_event<Ty0>(&Position, &TokenCollateral<Ty0>)
+	68: CopyLoc[0](Arg0: &mut Position)
+	69: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	70: ImmBorrowLoc[8](loc3: TokenCollateral<Ty0>)
+	71: ImmBorrowFieldGeneric[2](TokenCollateral.reward_distributor_index: u64)
+	72: ReadRef
+	73: VecMutBorrow(65)
+	74: MoveLoc[2](Arg2: &mut Market)
+	75: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	76: MoveLoc[5](loc0: ID)
+	77: CopyLoc[9](loc4: u64)
+	78: MoveLoc[4](Arg4: &Clock)
+	79: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	80: CopyLoc[0](Arg0: &mut Position)
+	81: MutBorrowField[30](Position.id: UID)
+	82: CopyLoc[1](Arg1: u64)
+	83: MoveLoc[8](loc3: TokenCollateral<Ty0>)
+	84: Call dynamic_field::add<u64, TokenCollateral<Ty0>>(&mut UID, u64, TokenCollateral<Ty0>)
+B3:
+	85: CopyLoc[0](Arg0: &mut Position)
+	86: MutBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	87: MoveLoc[1](Arg1: u64)
+	88: MoveLoc[9](loc4: u64)
+	89: Call vec_map::insert<u64, u64>(&mut VecMap<u64, u64>, u64, u64)
+	90: MoveLoc[0](Arg0: &mut Position)
+	91: FreezeRef
+	92: Call emit_position_update_event(&Position)
+	93: Ret
+}
+
+public(friend) remove_token_collateral<Ty0>(Arg0: &mut Position, Arg1: u64, Arg2: &mut Market, Arg3: u64, Arg4: &Clock): Balance<XToken<Ty0>> {
+L5:	loc0: ID
+L6:	loc1: u64
+L7:	loc2: TokenCollateral<Ty0>
+L8:	loc3: Balance<XToken<Ty0>>
+L9:	loc4: &mut TokenCollateral<Ty0>
+L10:	loc5: &TokenCollateral<Ty0>
+L11:	loc6: Balance<XToken<Ty0>>
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	2: ImmBorrowLoc[1](Arg1: u64)
+	3: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	4: BrFalse(6)
+B1:
+	5: Branch(14)
+B2:
+	6: MoveLoc[0](Arg0: &mut Position)
+	7: Pop
+	8: MoveLoc[2](Arg2: &mut Market)
+	9: Pop
+	10: MoveLoc[4](Arg4: &Clock)
+	11: Pop
+	12: LdU64(13906837661856825343)
+	13: Abort
+B3:
+	14: CopyLoc[0](Arg0: &mut Position)
+	15: FreezeRef
+	16: Call object::id<Position>(&Position): ID
+	17: StLoc[5](loc0: ID)
+	18: CopyLoc[0](Arg0: &mut Position)
+	19: MutBorrowField[30](Position.id: UID)
+	20: CopyLoc[1](Arg1: u64)
+	21: Call dynamic_field::borrow_mut<u64, TokenCollateral<Ty0>>(&mut UID, u64): &mut TokenCollateral<Ty0>
+	22: StLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	23: CopyLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	24: ImmBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	25: Call balance::value<XToken<Ty0>>(&Balance<XToken<Ty0>>): u64
+	26: CopyLoc[3](Arg3: u64)
+	27: Ge
+	28: BrFalse(30)
+B4:
+	29: Branch(40)
+B5:
+	30: MoveLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	31: Pop
+	32: MoveLoc[0](Arg0: &mut Position)
+	33: Pop
+	34: MoveLoc[2](Arg2: &mut Market)
+	35: Pop
+	36: MoveLoc[4](Arg4: &Clock)
+	37: Pop
+	38: LdConst[3](u64: 3)
+	39: Abort
+B6:
+	40: CopyLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	41: MutBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	42: MoveLoc[3](Arg3: u64)
+	43: Call balance::split<XToken<Ty0>>(&mut Balance<XToken<Ty0>>, u64): Balance<XToken<Ty0>>
+	44: StLoc[11](loc6: Balance<XToken<Ty0>>)
+	45: CopyLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	46: ImmBorrowFieldGeneric[1](TokenCollateral.x_token: Balance<XToken<Ty0>>)
+	47: Call balance::value<XToken<Ty0>>(&Balance<XToken<Ty0>>): u64
+	48: StLoc[6](loc1: u64)
+	49: CopyLoc[0](Arg0: &mut Position)
+	50: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	51: MoveLoc[9](loc4: &mut TokenCollateral<Ty0>)
+	52: ImmBorrowFieldGeneric[2](TokenCollateral.reward_distributor_index: u64)
+	53: ReadRef
+	54: VecMutBorrow(65)
+	55: MoveLoc[2](Arg2: &mut Market)
+	56: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	57: MoveLoc[5](loc0: ID)
+	58: CopyLoc[6](loc1: u64)
+	59: MoveLoc[4](Arg4: &Clock)
+	60: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	61: CopyLoc[6](loc1: u64)
+	62: LdU64(0)
+	63: Eq
+	64: BrFalse(89)
+B7:
+	65: CopyLoc[0](Arg0: &mut Position)
+	66: MutBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	67: ImmBorrowLoc[1](Arg1: u64)
+	68: Call vec_map::remove<u64, u64>(&mut VecMap<u64, u64>, &u64): u64 * u64
+	69: Pop
+	70: Pop
+	71: CopyLoc[0](Arg0: &mut Position)
+	72: MutBorrowField[30](Position.id: UID)
+	73: MoveLoc[1](Arg1: u64)
+	74: Call dynamic_field::remove<u64, TokenCollateral<Ty0>>(&mut UID, u64): TokenCollateral<Ty0>
+	75: StLoc[7](loc2: TokenCollateral<Ty0>)
+	76: MoveLoc[0](Arg0: &mut Position)
+	77: FreezeRef
+	78: ImmBorrowLoc[7](loc2: TokenCollateral<Ty0>)
+	79: Call emit_token_collateral_update_event<Ty0>(&Position, &TokenCollateral<Ty0>)
+	80: MoveLoc[7](loc2: TokenCollateral<Ty0>)
+	81: UnpackGeneric[0](TokenCollateral<Ty0>)
+	82: Pop
+	83: StLoc[8](loc3: Balance<XToken<Ty0>>)
+	84: Pop
+	85: MoveLoc[8](loc3: Balance<XToken<Ty0>>)
+	86: Call balance::destroy_zero<XToken<Ty0>>(Balance<XToken<Ty0>>)
+	87: MoveLoc[11](loc6: Balance<XToken<Ty0>>)
+	88: Ret
+B8:
+	89: CopyLoc[0](Arg0: &mut Position)
+	90: ImmBorrowField[30](Position.id: UID)
+	91: CopyLoc[1](Arg1: u64)
+	92: Call dynamic_field::borrow<u64, TokenCollateral<Ty0>>(&UID, u64): &TokenCollateral<Ty0>
+	93: StLoc[10](loc5: &TokenCollateral<Ty0>)
+	94: CopyLoc[0](Arg0: &mut Position)
+	95: FreezeRef
+	96: MoveLoc[10](loc5: &TokenCollateral<Ty0>)
+	97: Call emit_token_collateral_update_event<Ty0>(&Position, &TokenCollateral<Ty0>)
+	98: CopyLoc[0](Arg0: &mut Position)
+	99: MutBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	100: ImmBorrowLoc[1](Arg1: u64)
+	101: Call vec_map::remove<u64, u64>(&mut VecMap<u64, u64>, &u64): u64 * u64
+	102: Pop
+	103: Pop
+	104: MoveLoc[0](Arg0: &mut Position)
+	105: MutBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	106: MoveLoc[1](Arg1: u64)
+	107: MoveLoc[6](loc1: u64)
+	108: Call vec_map::insert<u64, u64>(&mut VecMap<u64, u64>, u64, u64)
+	109: MoveLoc[11](loc6: Balance<XToken<Ty0>>)
+	110: Ret
+}
+
+public(friend) add_borrow(Arg0: &mut Position, Arg1: TypeName, Arg2: u64, Arg3: u64, Arg4: u64, Arg5: &mut Market, Arg6: &Clock) {
+L7:	loc0: bool
+L8:	loc1: &mut Borrow
+L9:	loc2: Borrow
+L10:	loc3: &mut Borrow
+L11:	loc4: &Borrow
+L12:	loc5: u64
+L13:	loc6: u64
+L14:	loc7: u64
+L15:	loc8: ID
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: FreezeRef
+	2: Call object::id<Position>(&Position): ID
+	3: StLoc[15](loc8: ID)
+	4: CopyLoc[0](Arg0: &mut Position)
+	5: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	6: VecLen(63)
+	7: StLoc[13](loc6: u64)
+	8: LdU64(0)
+	9: StLoc[12](loc5: u64)
+B1:
+	10: CopyLoc[12](loc5: u64)
+	11: CopyLoc[13](loc6: u64)
+	12: Lt
+	13: BrFalse(63)
+B2:
+	14: Branch(15)
+B3:
+	15: CopyLoc[0](Arg0: &mut Position)
+	16: MutBorrowField[32](Position.loans: vector<Borrow>)
+	17: CopyLoc[12](loc5: u64)
+	18: VecMutBorrow(63)
+	19: StLoc[8](loc1: &mut Borrow)
+	20: CopyLoc[8](loc1: &mut Borrow)
+	21: ImmBorrowField[25](Borrow.market_id: u64)
+	22: ReadRef
+	23: CopyLoc[2](Arg2: u64)
+	24: Neq
+	25: BrFalse(33)
+B4:
+	26: MoveLoc[8](loc1: &mut Borrow)
+	27: Pop
+	28: MoveLoc[12](loc5: u64)
+	29: LdU64(1)
+	30: Add
+	31: StLoc[12](loc5: u64)
+	32: Branch(10)
+B5:
+	33: CopyLoc[8](loc1: &mut Borrow)
+	34: ImmBorrowField[26](Borrow.amount: u64)
+	35: ReadRef
+	36: Call math::from(u64): Number
+	37: CopyLoc[5](Arg5: &mut Market)
+	38: FreezeRef
+	39: Call market::get_compounded_interest(&Market): Number
+	40: Call math::mul(Number, Number): Number
+	41: CopyLoc[8](loc1: &mut Borrow)
+	42: ImmBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	43: ReadRef
+	44: Call math::div(Number, Number): Number
+	45: Call math::to_u64(Number): u64
+	46: CopyLoc[8](loc1: &mut Borrow)
+	47: MutBorrowField[26](Borrow.amount: u64)
+	48: WriteRef
+	49: CopyLoc[8](loc1: &mut Borrow)
+	50: ImmBorrowField[26](Borrow.amount: u64)
+	51: ReadRef
+	52: CopyLoc[3](Arg3: u64)
+	53: Add
+	54: CopyLoc[8](loc1: &mut Borrow)
+	55: MutBorrowField[26](Borrow.amount: u64)
+	56: WriteRef
+	57: CopyLoc[5](Arg5: &mut Market)
+	58: FreezeRef
+	59: Call market::get_compounded_interest(&Market): Number
+	60: MoveLoc[8](loc1: &mut Borrow)
+	61: MutBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	62: WriteRef
+B6:
+	63: CopyLoc[12](loc5: u64)
+	64: MoveLoc[13](loc6: u64)
+	65: Eq
+	66: BrFalse(86)
+B7:
+	67: MoveLoc[1](Arg1: TypeName)
+	68: MoveLoc[2](Arg2: u64)
+	69: MoveLoc[3](Arg3: u64)
+	70: MoveLoc[4](Arg4: u64)
+	71: CopyLoc[5](Arg5: &mut Market)
+	72: FreezeRef
+	73: Call market::get_compounded_interest(&Market): Number
+	74: CopyLoc[0](Arg0: &mut Position)
+	75: CopyLoc[5](Arg5: &mut Market)
+	76: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	77: CopyLoc[6](Arg6: &Clock)
+	78: LdFalse
+	79: Call find_or_add_user_reward_distributor(&mut Position, &mut RewardDistributor, &Clock, bool): u64
+	80: Pack[5](Borrow)
+	81: StLoc[9](loc2: Borrow)
+	82: CopyLoc[0](Arg0: &mut Position)
+	83: MutBorrowField[32](Position.loans: vector<Borrow>)
+	84: MoveLoc[9](loc2: Borrow)
+	85: VecPushBack(63)
+B8:
+	86: CopyLoc[0](Arg0: &mut Position)
+	87: MutBorrowField[32](Position.loans: vector<Borrow>)
+	88: CopyLoc[12](loc5: u64)
+	89: VecMutBorrow(63)
+	90: StLoc[10](loc3: &mut Borrow)
+	91: CopyLoc[10](loc3: &mut Borrow)
+	92: ImmBorrowField[26](Borrow.amount: u64)
+	93: ReadRef
+	94: Call math::from(u64): Number
+	95: CopyLoc[10](loc3: &mut Borrow)
+	96: ImmBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	97: ReadRef
+	98: Call math::div(Number, Number): Number
+	99: Call math::to_u64(Number): u64
+	100: StLoc[14](loc7: u64)
+	101: CopyLoc[0](Arg0: &mut Position)
+	102: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	103: MoveLoc[10](loc3: &mut Borrow)
+	104: ImmBorrowField[29](Borrow.reward_distributor_index: u64)
+	105: ReadRef
+	106: VecMutBorrow(65)
+	107: CopyLoc[5](Arg5: &mut Market)
+	108: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	109: MoveLoc[15](loc8: ID)
+	110: MoveLoc[14](loc7: u64)
+	111: MoveLoc[6](Arg6: &Clock)
+	112: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	113: CopyLoc[0](Arg0: &mut Position)
+	114: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	115: MoveLoc[12](loc5: u64)
+	116: VecImmBorrow(63)
+	117: StLoc[11](loc4: &Borrow)
+	118: CopyLoc[0](Arg0: &mut Position)
+	119: FreezeRef
+	120: MoveLoc[11](loc4: &Borrow)
+	121: Call emit_borrow_update_event(&Position, &Borrow)
+	122: CopyLoc[0](Arg0: &mut Position)
+	123: ImmBorrowField[11](Position.is_isolated_borrowed: bool)
+	124: ReadRef
+	125: BrFalse(131)
+B9:
+	126: MoveLoc[5](Arg5: &mut Market)
+	127: Pop
+	128: LdTrue
+	129: StLoc[7](loc0: bool)
+	130: Branch(135)
+B10:
+	131: MoveLoc[5](Arg5: &mut Market)
+	132: FreezeRef
+	133: Call market::is_isolated(&Market): bool
+	134: StLoc[7](loc0: bool)
+B11:
+	135: MoveLoc[7](loc0: bool)
+	136: CopyLoc[0](Arg0: &mut Position)
+	137: MutBorrowField[11](Position.is_isolated_borrowed: bool)
+	138: WriteRef
+	139: MoveLoc[0](Arg0: &mut Position)
+	140: FreezeRef
+	141: Call emit_position_update_event(&Position)
+	142: Ret
+}
+
+public(friend) repay(Arg0: &mut Position, Arg1: TypeName, Arg2: u64, Arg3: &mut Market, Arg4: u64, Arg5: &Clock): u64 {
+L6:	loc0: &mut Borrow
+L7:	loc1: Borrow
+L8:	loc2: &Borrow
+L9:	loc3: u64
+L10:	loc4: u64
+L11:	loc5: u64
+L12:	loc6: ID
+L13:	loc7: u64
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: FreezeRef
+	2: Call object::id<Position>(&Position): ID
+	3: StLoc[12](loc6: ID)
+	4: CopyLoc[0](Arg0: &mut Position)
+	5: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	6: VecLen(63)
+	7: StLoc[10](loc4: u64)
+	8: LdU64(0)
+	9: StLoc[9](loc3: u64)
+B1:
+	10: CopyLoc[9](loc3: u64)
+	11: CopyLoc[10](loc4: u64)
+	12: Lt
+	13: BrFalse(141)
+B2:
+	14: Branch(15)
+B3:
+	15: CopyLoc[0](Arg0: &mut Position)
+	16: MutBorrowField[32](Position.loans: vector<Borrow>)
+	17: CopyLoc[9](loc3: u64)
+	18: VecMutBorrow(63)
+	19: StLoc[6](loc0: &mut Borrow)
+	20: CopyLoc[6](loc0: &mut Borrow)
+	21: ImmBorrowField[25](Borrow.market_id: u64)
+	22: ReadRef
+	23: CopyLoc[2](Arg2: u64)
+	24: Neq
+	25: BrFalse(33)
+B4:
+	26: MoveLoc[6](loc0: &mut Borrow)
+	27: Pop
+	28: MoveLoc[9](loc3: u64)
+	29: LdU64(1)
+	30: Add
+	31: StLoc[9](loc3: u64)
+	32: Branch(10)
+B5:
+	33: CopyLoc[6](loc0: &mut Borrow)
+	34: ImmBorrowField[24](Borrow.coin_type: TypeName)
+	35: ReadRef
+	36: MoveLoc[1](Arg1: TypeName)
+	37: Eq
+	38: BrFalse(40)
+B6:
+	39: Branch(50)
+B7:
+	40: MoveLoc[0](Arg0: &mut Position)
+	41: Pop
+	42: MoveLoc[3](Arg3: &mut Market)
+	43: Pop
+	44: MoveLoc[5](Arg5: &Clock)
+	45: Pop
+	46: MoveLoc[6](loc0: &mut Borrow)
+	47: Pop
+	48: LdU64(13906838181547868159)
+	49: Abort
+B8:
+	50: CopyLoc[6](loc0: &mut Borrow)
+	51: CopyLoc[3](Arg3: &mut Market)
+	52: FreezeRef
+	53: Call update_and_get_borrow_amount(&mut Borrow, &Market): u64
+	54: Pop
+	55: CopyLoc[4](Arg4: u64)
+	56: CopyLoc[6](loc0: &mut Borrow)
+	57: ImmBorrowField[26](Borrow.amount: u64)
+	58: ReadRef
+	59: Ge
+	60: BrFalse(97)
+B9:
+	61: MoveLoc[6](loc0: &mut Borrow)
+	62: Pop
+	63: CopyLoc[0](Arg0: &mut Position)
+	64: MutBorrowField[32](Position.loans: vector<Borrow>)
+	65: MoveLoc[9](loc3: u64)
+	66: Call vector::remove<Borrow>(&mut vector<Borrow>, u64): Borrow
+	67: StLoc[7](loc1: Borrow)
+	68: CopyLoc[0](Arg0: &mut Position)
+	69: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	70: ImmBorrowLoc[7](loc1: Borrow)
+	71: ImmBorrowField[29](Borrow.reward_distributor_index: u64)
+	72: ReadRef
+	73: VecMutBorrow(65)
+	74: MoveLoc[3](Arg3: &mut Market)
+	75: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	76: MoveLoc[12](loc6: ID)
+	77: LdU64(0)
+	78: MoveLoc[5](Arg5: &Clock)
+	79: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	80: CopyLoc[0](Arg0: &mut Position)
+	81: FreezeRef
+	82: ImmBorrowLoc[7](loc1: Borrow)
+	83: Call emit_borrow_update_event(&Position, &Borrow)
+	84: MoveLoc[7](loc1: Borrow)
+	85: Unpack[5](Borrow)
+	86: Pop
+	87: Pop
+	88: Pop
+	89: StLoc[13](loc7: u64)
+	90: Pop
+	91: Pop
+	92: MoveLoc[0](Arg0: &mut Position)
+	93: FreezeRef
+	94: Call emit_position_update_event(&Position)
+	95: MoveLoc[13](loc7: u64)
+	96: Ret
+B10:
+	97: CopyLoc[6](loc0: &mut Borrow)
+	98: ImmBorrowField[26](Borrow.amount: u64)
+	99: ReadRef
+	100: CopyLoc[4](Arg4: u64)
+	101: Sub
+	102: CopyLoc[6](loc0: &mut Borrow)
+	103: MutBorrowField[26](Borrow.amount: u64)
+	104: WriteRef
+	105: CopyLoc[6](loc0: &mut Borrow)
+	106: ImmBorrowField[26](Borrow.amount: u64)
+	107: ReadRef
+	108: Call math::from(u64): Number
+	109: CopyLoc[6](loc0: &mut Borrow)
+	110: ImmBorrowField[28](Borrow.borrow_compounded_interest: Number)
+	111: ReadRef
+	112: Call math::div(Number, Number): Number
+	113: Call math::to_u64(Number): u64
+	114: StLoc[11](loc5: u64)
+	115: CopyLoc[0](Arg0: &mut Position)
+	116: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	117: MoveLoc[6](loc0: &mut Borrow)
+	118: ImmBorrowField[29](Borrow.reward_distributor_index: u64)
+	119: ReadRef
+	120: VecMutBorrow(65)
+	121: MoveLoc[3](Arg3: &mut Market)
+	122: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	123: MoveLoc[12](loc6: ID)
+	124: MoveLoc[11](loc5: u64)
+	125: MoveLoc[5](Arg5: &Clock)
+	126: Call rewards::change_user_share(&mut UserRewardDistributor, &mut RewardDistributor, ID, u64, &Clock)
+	127: CopyLoc[0](Arg0: &mut Position)
+	128: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	129: MoveLoc[9](loc3: u64)
+	130: VecImmBorrow(63)
+	131: StLoc[8](loc2: &Borrow)
+	132: CopyLoc[0](Arg0: &mut Position)
+	133: FreezeRef
+	134: MoveLoc[8](loc2: &Borrow)
+	135: Call emit_borrow_update_event(&Position, &Borrow)
+	136: MoveLoc[0](Arg0: &mut Position)
+	137: FreezeRef
+	138: Call emit_position_update_event(&Position)
+	139: MoveLoc[4](Arg4: u64)
+	140: Ret
+B11:
+	141: MoveLoc[0](Arg0: &mut Position)
+	142: Pop
+	143: MoveLoc[3](Arg3: &mut Market)
+	144: Pop
+	145: MoveLoc[5](Arg5: &Clock)
+	146: Pop
+	147: LdU64(0)
+	148: Ret
+}
+
+public(friend) liquidate<Ty0, Ty1>(Arg0: &mut Position, Arg1: &mut Table<u64, Market>, Arg2: u64, Arg3: u64, Arg4: Coin<Ty0>, Arg5: &Oracle, Arg6: &Clock, Arg7: &mut TxContext): Balance<XToken<Ty1>> * Number * Number * Balance<XToken<Ty1>> * Coin<Ty0> * Coin<Ty0> {
+L8:	loc0: u8
+L9:	loc1: Number
+L10:	loc2: Coin<Ty0>
+L11:	loc3: Number
+L12:	loc4: &mut Borrow
+L13:	loc5: &mut Market
+L14:	loc6: u64
+L15:	loc7: Number
+L16:	loc8: u8
+L17:	loc9: &mut TokenCollateral<Ty1>
+L18:	loc10: Number
+L19:	loc11: Number
+L20:	loc12: &mut Market
+L21:	loc13: &mut Market
+L22:	loc14: &Market
+L23:	loc15: Number
+L24:	loc16: Number
+L25:	loc17: Number
+L26:	loc18: &mut Market
+L27:	loc19: Number
+L28:	loc20: Number
+L29:	loc21: Number
+L30:	loc22: Number
+L31:	loc23: Number
+L32:	loc24: Number
+L33:	loc25: Balance<XToken<Ty1>>
+L34:	loc26: Balance<XToken<Ty1>>
+L35:	loc27: Number
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	2: ImmBorrowLoc[2](Arg2: u64)
+	3: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	4: BrFalse(6)
+B1:
+	5: Branch(18)
+B2:
+	6: MoveLoc[0](Arg0: &mut Position)
+	7: Pop
+	8: MoveLoc[5](Arg5: &Oracle)
+	9: Pop
+	10: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	11: Pop
+	12: MoveLoc[7](Arg7: &mut TxContext)
+	13: Pop
+	14: MoveLoc[6](Arg6: &Clock)
+	15: Pop
+	16: LdConst[1](u64: 1)
+	17: Abort
+B3:
+	18: CopyLoc[0](Arg0: &mut Position)
+	19: FreezeRef
+	20: CopyLoc[6](Arg6: &Clock)
+	21: Call is_liquidatable(&Position, &Clock): bool
+	22: BrFalse(24)
+B4:
+	23: Branch(36)
+B5:
+	24: MoveLoc[0](Arg0: &mut Position)
+	25: Pop
+	26: MoveLoc[5](Arg5: &Oracle)
+	27: Pop
+	28: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	29: Pop
+	30: MoveLoc[7](Arg7: &mut TxContext)
+	31: Pop
+	32: MoveLoc[6](Arg6: &Clock)
+	33: Pop
+	34: LdConst[0](u64: 0)
+	35: Abort
+B6:
+	36: CopyLoc[0](Arg0: &mut Position)
+	37: FreezeRef
+	38: CopyLoc[3](Arg3: u64)
+	39: Call find_borrow_by_market_id(&Position, u64): u64
+	40: StLoc[14](loc6: u64)
+	41: CopyLoc[0](Arg0: &mut Position)
+	42: MutBorrowField[32](Position.loans: vector<Borrow>)
+	43: MoveLoc[14](loc6: u64)
+	44: VecMutBorrow(63)
+	45: StLoc[12](loc4: &mut Borrow)
+	46: CopyLoc[12](loc4: &mut Borrow)
+	47: ImmBorrowField[24](Borrow.coin_type: TypeName)
+	48: ReadRef
+	49: Call type_name::get<Ty0>(): TypeName
+	50: Eq
+	51: BrFalse(53)
+B7:
+	52: Branch(67)
+B8:
+	53: MoveLoc[0](Arg0: &mut Position)
+	54: Pop
+	55: MoveLoc[5](Arg5: &Oracle)
+	56: Pop
+	57: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	58: Pop
+	59: MoveLoc[7](Arg7: &mut TxContext)
+	60: Pop
+	61: MoveLoc[6](Arg6: &Clock)
+	62: Pop
+	63: MoveLoc[12](loc4: &mut Borrow)
+	64: Pop
+	65: LdConst[1](u64: 1)
+	66: Abort
+B9:
+	67: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	68: FreezeRef
+	69: CopyLoc[3](Arg3: u64)
+	70: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	71: CopyLoc[5](Arg5: &Oracle)
+	72: Call market::get_token_price(&Market, &Oracle): Number * Number
+	73: Pop
+	74: ImmBorrowLoc[4](Arg4: Coin<Ty0>)
+	75: Call coin::value<Ty0>(&Coin<Ty0>): u64
+	76: Call math::from(u64): Number
+	77: Call math::mul(Number, Number): Number
+	78: StLoc[29](loc21: Number)
+	79: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	80: CopyLoc[12](loc4: &mut Borrow)
+	81: ImmBorrowField[25](Borrow.market_id: u64)
+	82: ReadRef
+	83: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	84: StLoc[26](loc18: &mut Market)
+	85: MoveLoc[12](loc4: &mut Borrow)
+	86: MoveLoc[26](loc18: &mut Market)
+	87: CopyLoc[5](Arg5: &Oracle)
+	88: CopyLoc[6](Arg6: &Clock)
+	89: Call update_and_get_borrow_value(&mut Borrow, &mut Market, &Oracle, &Clock): Number * Number
+	90: Pop
+	91: StLoc[15](loc7: Number)
+	92: CopyLoc[0](Arg0: &mut Position)
+	93: ImmBorrowField[6](Position.spot_total_loan_usd: Number)
+	94: ReadRef
+	95: CopyLoc[0](Arg0: &mut Position)
+	96: ImmBorrowField[1](Position.total_collateral_usd: Number)
+	97: ReadRef
+	98: Call math::lt(Number, Number): bool
+	99: BrFalse(107)
+B10:
+	100: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	101: FreezeRef
+	102: CopyLoc[2](Arg2: u64)
+	103: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	104: Call market::get_close_factor_percentage(&Market): u8
+	105: StLoc[8](loc0: u8)
+	106: Branch(109)
+B11:
+	107: LdU8(100)
+	108: StLoc[8](loc0: u8)
+B12:
+	109: MoveLoc[8](loc0: u8)
+	110: StLoc[16](loc8: u8)
+	111: CopyLoc[15](loc7: Number)
+	112: LdU64(1)
+	113: Call math::from(u64): Number
+	114: Call math::le(Number, Number): bool
+	115: BrFalse(121)
+B13:
+	116: MoveLoc[15](loc7: Number)
+	117: MoveLoc[29](loc21: Number)
+	118: Call math::min(Number, Number): Number
+	119: StLoc[9](loc1: Number)
+	120: Branch(133)
+B14:
+	121: MoveLoc[15](loc7: Number)
+	122: CopyLoc[0](Arg0: &mut Position)
+	123: ImmBorrowField[6](Position.spot_total_loan_usd: Number)
+	124: ReadRef
+	125: MoveLoc[16](loc8: u8)
+	126: CastU16
+	127: Call math::from_percentage(u16): Number
+	128: Call math::mul(Number, Number): Number
+	129: Call math::min(Number, Number): Number
+	130: MoveLoc[29](loc21: Number)
+	131: Call math::min(Number, Number): Number
+	132: StLoc[9](loc1: Number)
+B15:
+	133: MoveLoc[9](loc1: Number)
+	134: StLoc[31](loc23: Number)
+	135: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	136: FreezeRef
+	137: CopyLoc[2](Arg2: u64)
+	138: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	139: StLoc[22](loc14: &Market)
+	140: CopyLoc[31](loc23: Number)
+	141: CopyLoc[22](loc14: &Market)
+	142: Call market::get_liquidation_bonus_bps(&Market): u64
+	143: Call math::from_bps(u64): Number
+	144: Call math::mul(Number, Number): Number
+	145: StLoc[24](loc16: Number)
+	146: CopyLoc[31](loc23: Number)
+	147: MoveLoc[22](loc14: &Market)
+	148: Call market::get_liquidation_fee_bps(&Market): u64
+	149: Call math::from_bps(u64): Number
+	150: Call math::mul(Number, Number): Number
+	151: StLoc[25](loc17: Number)
+	152: MoveLoc[31](loc23: Number)
+	153: CopyLoc[24](loc16: Number)
+	154: CopyLoc[25](loc17: Number)
+	155: Call math::add(Number, Number): Number
+	156: Call math::add(Number, Number): Number
+	157: StLoc[30](loc22: Number)
+	158: CopyLoc[0](Arg0: &mut Position)
+	159: MutBorrowField[30](Position.id: UID)
+	160: CopyLoc[2](Arg2: u64)
+	161: Call dynamic_field::borrow_mut<u64, TokenCollateral<Ty1>>(&mut UID, u64): &mut TokenCollateral<Ty1>
+	162: StLoc[17](loc9: &mut TokenCollateral<Ty1>)
+	163: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	164: CopyLoc[2](Arg2: u64)
+	165: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	166: StLoc[20](loc12: &mut Market)
+	167: CopyLoc[17](loc9: &mut TokenCollateral<Ty1>)
+	168: ImmBorrowFieldGeneric[3](TokenCollateral.x_token: Balance<XToken<Ty1>>)
+	169: Call balance::value<XToken<Ty1>>(&Balance<XToken<Ty1>>): u64
+	170: Call math::from(u64): Number
+	171: CopyLoc[20](loc12: &mut Market)
+	172: FreezeRef
+	173: CopyLoc[5](Arg5: &Oracle)
+	174: Call market::get_xtoken_spot_price(&Market, &Oracle): Number
+	175: Call math::mul(Number, Number): Number
+	176: StLoc[18](loc10: Number)
+	177: MoveLoc[17](loc9: &mut TokenCollateral<Ty1>)
+	178: ImmBorrowFieldGeneric[3](TokenCollateral.x_token: Balance<XToken<Ty1>>)
+	179: Call balance::value<XToken<Ty1>>(&Balance<XToken<Ty1>>): u64
+	180: Call math::from(u64): Number
+	181: StLoc[11](loc3: Number)
+	182: MoveLoc[20](loc12: &mut Market)
+	183: MoveLoc[18](loc10: Number)
+	184: MoveLoc[11](loc3: Number)
+	185: StLoc[35](loc27: Number)
+	186: StLoc[19](loc11: Number)
+	187: StLoc[21](loc13: &mut Market)
+	188: CopyLoc[19](loc11: Number)
+	189: CopyLoc[30](loc22: Number)
+	190: Call math::lt(Number, Number): bool
+	191: BrFalse(209)
+B16:
+	192: MoveLoc[19](loc11: Number)
+	193: CopyLoc[30](loc22: Number)
+	194: Call math::div(Number, Number): Number
+	195: StLoc[28](loc20: Number)
+	196: MoveLoc[30](loc22: Number)
+	197: CopyLoc[28](loc20: Number)
+	198: Call math::mul(Number, Number): Number
+	199: StLoc[30](loc22: Number)
+	200: MoveLoc[24](loc16: Number)
+	201: CopyLoc[28](loc20: Number)
+	202: Call math::mul(Number, Number): Number
+	203: StLoc[24](loc16: Number)
+	204: MoveLoc[25](loc17: Number)
+	205: MoveLoc[28](loc20: Number)
+	206: Call math::mul(Number, Number): Number
+	207: StLoc[25](loc17: Number)
+	208: Branch(217)
+B17:
+	209: CopyLoc[30](loc22: Number)
+	210: MoveLoc[19](loc11: Number)
+	211: Call math::div(Number, Number): Number
+	212: StLoc[23](loc15: Number)
+	213: MoveLoc[35](loc27: Number)
+	214: MoveLoc[23](loc15: Number)
+	215: Call math::mul(Number, Number): Number
+	216: StLoc[35](loc27: Number)
+B18:
+	217: CopyLoc[0](Arg0: &mut Position)
+	218: MoveLoc[2](Arg2: u64)
+	219: MoveLoc[21](loc13: &mut Market)
+	220: MoveLoc[35](loc27: Number)
+	221: Call math::to_u64(Number): u64
+	222: CopyLoc[6](Arg6: &Clock)
+	223: Call remove_token_collateral<Ty1>(&mut Position, u64, &mut Market, u64, &Clock): Balance<XToken<Ty1>>
+	224: StLoc[33](loc25: Balance<XToken<Ty1>>)
+	225: ImmBorrowLoc[33](loc25: Balance<XToken<Ty1>>)
+	226: Call balance::value<XToken<Ty1>>(&Balance<XToken<Ty1>>): u64
+	227: Call math::from(u64): Number
+	228: CopyLoc[25](loc17: Number)
+	229: Call math::mul(Number, Number): Number
+	230: CopyLoc[30](loc22: Number)
+	231: Call math::div(Number, Number): Number
+	232: StLoc[32](loc24: Number)
+	233: MutBorrowLoc[33](loc25: Balance<XToken<Ty1>>)
+	234: MoveLoc[32](loc24: Number)
+	235: Call math::to_u64(Number): u64
+	236: Call balance::split<XToken<Ty1>>(&mut Balance<XToken<Ty1>>, u64): Balance<XToken<Ty1>>
+	237: StLoc[34](loc26: Balance<XToken<Ty1>>)
+	238: CopyLoc[30](loc22: Number)
+	239: CopyLoc[24](loc16: Number)
+	240: Call math::sub(Number, Number): Number
+	241: MoveLoc[25](loc17: Number)
+	242: Call math::sub(Number, Number): Number
+	243: StLoc[27](loc19: Number)
+	244: MutBorrowLoc[4](Arg4: Coin<Ty0>)
+	245: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	246: FreezeRef
+	247: CopyLoc[3](Arg3: u64)
+	248: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	249: MoveLoc[5](Arg5: &Oracle)
+	250: MoveLoc[27](loc19: Number)
+	251: Call market::get_token_count(&Market, &Oracle, Number): Number
+	252: Call math::to_u64(Number): u64
+	253: MoveLoc[7](Arg7: &mut TxContext)
+	254: Call coin::split<Ty0>(&mut Coin<Ty0>, u64, &mut TxContext): Coin<Ty0>
+	255: StLoc[10](loc2: Coin<Ty0>)
+	256: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	257: CopyLoc[3](Arg3: u64)
+	258: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	259: StLoc[13](loc5: &mut Market)
+	260: MoveLoc[0](Arg0: &mut Position)
+	261: Call type_name::get<Ty0>(): TypeName
+	262: MoveLoc[3](Arg3: u64)
+	263: MoveLoc[13](loc5: &mut Market)
+	264: ImmBorrowLoc[10](loc2: Coin<Ty0>)
+	265: Call coin::value<Ty0>(&Coin<Ty0>): u64
+	266: MoveLoc[6](Arg6: &Clock)
+	267: Call repay(&mut Position, TypeName, u64, &mut Market, u64, &Clock): u64
+	268: ImmBorrowLoc[10](loc2: Coin<Ty0>)
+	269: Call coin::value<Ty0>(&Coin<Ty0>): u64
+	270: Eq
+	271: BrFalse(273)
+B19:
+	272: Branch(275)
+B20:
+	273: LdU64(13906838752778518527)
+	274: Abort
+B21:
+	275: MoveLoc[33](loc25: Balance<XToken<Ty1>>)
+	276: MoveLoc[30](loc22: Number)
+	277: MoveLoc[24](loc16: Number)
+	278: MoveLoc[34](loc26: Balance<XToken<Ty1>>)
+	279: MoveLoc[10](loc2: Coin<Ty0>)
+	280: MoveLoc[4](Arg4: Coin<Ty0>)
+	281: Ret
+}
+
+public is_healthy(Arg0: &Position): bool {
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: ImmBorrowField[2](Position.safe_collateral_usd: Number)
+	2: ReadRef
+	3: MoveLoc[0](Arg0: &Position)
+	4: ImmBorrowField[7](Position.weighted_total_loan_usd: Number)
+	5: ReadRef
+	6: Call math::ge(Number, Number): bool
+	7: Ret
+}
+
+public(friend) get_position_id(Arg0: &PositionCap): ID {
+B0:
+	0: MoveLoc[0](Arg0: &PositionCap)
+	1: ImmBorrowField[41](PositionCap.position_id: ID)
+	2: ReadRef
+	3: Ret
+}
+
+find_borrow_by_market_id(Arg0: &Position, Arg1: u64): u64 {
+L2:	loc0: u64
+L3:	loc1: u64
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	2: VecLen(63)
+	3: StLoc[3](loc1: u64)
+	4: LdU64(0)
+	5: StLoc[2](loc0: u64)
+B1:
+	6: CopyLoc[2](loc0: u64)
+	7: CopyLoc[3](loc1: u64)
+	8: Lt
+	9: BrFalse(28)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](Arg0: &Position)
+	12: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	13: CopyLoc[2](loc0: u64)
+	14: VecImmBorrow(63)
+	15: ImmBorrowField[25](Borrow.market_id: u64)
+	16: ReadRef
+	17: CopyLoc[1](Arg1: u64)
+	18: Eq
+	19: BrFalse(23)
+B4:
+	20: MoveLoc[0](Arg0: &Position)
+	21: Pop
+	22: Branch(28)
+B5:
+	23: MoveLoc[2](loc0: u64)
+	24: LdU64(1)
+	25: Add
+	26: StLoc[2](loc0: u64)
+	27: Branch(6)
+B6:
+	28: MoveLoc[2](loc0: u64)
+	29: Ret
+}
+
+public(friend) get_borrow_market_count(Arg0: &Position): u64 {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	2: VecLen(63)
+	3: Ret
+}
+
+public(friend) borrowed_from_isolated(Arg0: &Position): bool {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[11](Position.is_isolated_borrowed: bool)
+	2: ReadRef
+	3: Ret
+}
+
+find_user_reward_distributor(Arg0: &mut Position, Arg1: &RewardDistributor): u64 {
+L2:	loc0: u64
+L3:	loc1: u64
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	2: VecLen(65)
+	3: StLoc[3](loc1: u64)
+	4: LdU64(0)
+	5: StLoc[2](loc0: u64)
+B1:
+	6: CopyLoc[2](loc0: u64)
+	7: CopyLoc[3](loc1: u64)
+	8: Lt
+	9: BrFalse(31)
+B2:
+	10: Branch(11)
+B3:
+	11: CopyLoc[0](Arg0: &mut Position)
+	12: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	13: CopyLoc[2](loc0: u64)
+	14: VecMutBorrow(65)
+	15: FreezeRef
+	16: Call rewards::get_reward_distributor_id(&UserRewardDistributor): ID
+	17: CopyLoc[1](Arg1: &RewardDistributor)
+	18: Call object::id<RewardDistributor>(&RewardDistributor): ID
+	19: Eq
+	20: BrFalse(26)
+B4:
+	21: MoveLoc[0](Arg0: &mut Position)
+	22: Pop
+	23: MoveLoc[1](Arg1: &RewardDistributor)
+	24: Pop
+	25: Branch(31)
+B5:
+	26: MoveLoc[2](loc0: u64)
+	27: LdU64(1)
+	28: Add
+	29: StLoc[2](loc0: u64)
+	30: Branch(6)
+B6:
+	31: MoveLoc[2](loc0: u64)
+	32: Ret
+}
+
+find_or_add_user_reward_distributor(Arg0: &mut Position, Arg1: &mut RewardDistributor, Arg2: &Clock, Arg3: bool): u64 {
+L4:	loc0: u64
+L5:	loc1: UserRewardDistributor
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: CopyLoc[1](Arg1: &mut RewardDistributor)
+	2: FreezeRef
+	3: Call find_user_reward_distributor(&mut Position, &RewardDistributor): u64
+	4: StLoc[4](loc0: u64)
+	5: CopyLoc[4](loc0: u64)
+	6: CopyLoc[0](Arg0: &mut Position)
+	7: ImmBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	8: VecLen(65)
+	9: Eq
+	10: BrFalse(30)
+B1:
+	11: CopyLoc[1](Arg1: &mut RewardDistributor)
+	12: FreezeRef
+	13: MoveLoc[3](Arg3: bool)
+	14: CopyLoc[2](Arg2: &Clock)
+	15: Call rewards::create_user_reward_distributor(&RewardDistributor, bool, &Clock): UserRewardDistributor
+	16: StLoc[5](loc1: UserRewardDistributor)
+	17: MutBorrowLoc[5](loc1: UserRewardDistributor)
+	18: MoveLoc[1](Arg1: &mut RewardDistributor)
+	19: LdTrue
+	20: CopyLoc[0](Arg0: &mut Position)
+	21: FreezeRef
+	22: Call object::id<Position>(&Position): ID
+	23: MoveLoc[2](Arg2: &Clock)
+	24: Call rewards::refresh_user_reward_distributor(&mut UserRewardDistributor, &mut RewardDistributor, bool, ID, &Clock)
+	25: MoveLoc[0](Arg0: &mut Position)
+	26: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	27: MoveLoc[5](loc1: UserRewardDistributor)
+	28: VecPushBack(65)
+	29: Branch(36)
+B2:
+	30: MoveLoc[0](Arg0: &mut Position)
+	31: Pop
+	32: MoveLoc[1](Arg1: &mut RewardDistributor)
+	33: Pop
+	34: MoveLoc[2](Arg2: &Clock)
+	35: Pop
+B3:
+	36: MoveLoc[4](loc0: u64)
+	37: Ret
+}
+
+public(friend) claim_rewards<Ty0>(Arg0: &mut Position, Arg1: &mut Market, Arg2: bool, Arg3: &Clock): Balance<Ty0> * Balance<XToken<Ty0>> * u64 {
+L4:	loc0: &mut RewardDistributor
+L5:	loc1: u64
+L6:	loc2: u64
+L7:	loc3: Balance<Ty0>
+L8:	loc4: u64
+L9:	loc5: &mut RewardDistributor
+L10:	loc6: u64
+L11:	loc7: ID
+L12:	loc8: Balance<Ty0>
+L13:	loc9: Balance<XToken<Ty0>>
+L14:	loc10: &mut UserRewardDistributor
+L15:	loc11: u64
+L16:	loc12: Balance<XToken<Ty0>>
+L17:	loc13: u64
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: FreezeRef
+	2: Call object::id<Position>(&Position): ID
+	3: StLoc[11](loc7: ID)
+	4: LdU64(0)
+	5: StLoc[5](loc1: u64)
+	6: CopyLoc[2](Arg2: bool)
+	7: BrFalse(12)
+B1:
+	8: MoveLoc[1](Arg1: &mut Market)
+	9: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	10: StLoc[4](loc0: &mut RewardDistributor)
+	11: Branch(15)
+B2:
+	12: MoveLoc[1](Arg1: &mut Market)
+	13: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	14: StLoc[4](loc0: &mut RewardDistributor)
+B3:
+	15: MoveLoc[4](loc0: &mut RewardDistributor)
+	16: StLoc[9](loc5: &mut RewardDistributor)
+	17: Call balance::zero<Ty0>(): Balance<Ty0>
+	18: StLoc[12](loc8: Balance<Ty0>)
+	19: Call balance::zero<XToken<Ty0>>(): Balance<XToken<Ty0>>
+	20: StLoc[13](loc9: Balance<XToken<Ty0>>)
+	21: CopyLoc[0](Arg0: &mut Position)
+	22: CopyLoc[9](loc5: &mut RewardDistributor)
+	23: CopyLoc[3](Arg3: &Clock)
+	24: MoveLoc[2](Arg2: bool)
+	25: Call find_or_add_user_reward_distributor(&mut Position, &mut RewardDistributor, &Clock, bool): u64
+	26: StLoc[10](loc6: u64)
+	27: MoveLoc[0](Arg0: &mut Position)
+	28: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	29: MoveLoc[10](loc6: u64)
+	30: VecMutBorrow(65)
+	31: StLoc[14](loc10: &mut UserRewardDistributor)
+	32: CopyLoc[14](loc10: &mut UserRewardDistributor)
+	33: CopyLoc[9](loc5: &mut RewardDistributor)
+	34: LdFalse
+	35: MoveLoc[11](loc7: ID)
+	36: CopyLoc[3](Arg3: &Clock)
+	37: Call rewards::refresh_user_reward_distributor(&mut UserRewardDistributor, &mut RewardDistributor, bool, ID, &Clock)
+	38: MoveLoc[14](loc10: &mut UserRewardDistributor)
+	39: CopyLoc[9](loc5: &mut RewardDistributor)
+	40: FreezeRef
+	41: MoveLoc[3](Arg3: &Clock)
+	42: Call rewards::claim_rewards<Ty0>(&mut UserRewardDistributor, &RewardDistributor, &Clock): u64 * u64 * u64 * u64
+	43: StLoc[15](loc11: u64)
+	44: StLoc[17](loc13: u64)
+	45: StLoc[6](loc2: u64)
+	46: StLoc[8](loc4: u64)
+	47: CopyLoc[6](loc2: u64)
+	48: LdU64(0)
+	49: Gt
+	50: BrFalse(60)
+B4:
+	51: CopyLoc[9](loc5: &mut RewardDistributor)
+	52: MoveLoc[8](loc4: u64)
+	53: MoveLoc[6](loc2: u64)
+	54: Call rewards::remove_reward_balance<Ty0>(&mut RewardDistributor, u64, u64): Balance<Ty0>
+	55: StLoc[7](loc3: Balance<Ty0>)
+	56: MutBorrowLoc[12](loc8: Balance<Ty0>)
+	57: MoveLoc[7](loc3: Balance<Ty0>)
+	58: Call balance::join<Ty0>(&mut Balance<Ty0>, Balance<Ty0>): u64
+	59: Pop
+B5:
+	60: CopyLoc[15](loc11: u64)
+	61: LdU64(0)
+	62: Gt
+	63: BrFalse(79)
+B6:
+	64: CopyLoc[9](loc5: &mut RewardDistributor)
+	65: CopyLoc[17](loc13: u64)
+	66: MoveLoc[15](loc11: u64)
+	67: Call rewards::remove_reward_balance<XToken<Ty0>>(&mut RewardDistributor, u64, u64): Balance<XToken<Ty0>>
+	68: StLoc[16](loc12: Balance<XToken<Ty0>>)
+	69: MutBorrowLoc[13](loc9: Balance<XToken<Ty0>>)
+	70: MoveLoc[16](loc12: Balance<XToken<Ty0>>)
+	71: Call balance::join<XToken<Ty0>>(&mut Balance<XToken<Ty0>>, Balance<XToken<Ty0>>): u64
+	72: Pop
+	73: MoveLoc[9](loc5: &mut RewardDistributor)
+	74: FreezeRef
+	75: MoveLoc[17](loc13: u64)
+	76: Call rewards::get_auto_compound_market_id(&RewardDistributor, u64): u64
+	77: StLoc[5](loc1: u64)
+	78: Branch(81)
+B7:
+	79: MoveLoc[9](loc5: &mut RewardDistributor)
+	80: Pop
+B8:
+	81: MoveLoc[12](loc8: Balance<Ty0>)
+	82: MoveLoc[13](loc9: Balance<XToken<Ty0>>)
+	83: MoveLoc[5](loc1: u64)
+	84: Ret
+}
+
+public is_liquidatable(Arg0: &Position, Arg1: &Clock): bool {
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: ImmBorrowField[12](Position.last_refreshed: u64)
+	2: ReadRef
+	3: MoveLoc[1](Arg1: &Clock)
+	4: Call clock::timestamp_ms(&Clock): u64
+	5: Eq
+	6: BrFalse(8)
+B1:
+	7: Branch(12)
+B2:
+	8: MoveLoc[0](Arg0: &Position)
+	9: Pop
+	10: LdConst[2](u64: 2)
+	11: Abort
+B3:
+	12: MoveLoc[0](Arg0: &Position)
+	13: ImmBorrowField[10](Position.is_position_liquidatable: bool)
+	14: ReadRef
+	15: Ret
+}
+
+public(friend) get_collateral_amount(Arg0: &Position, Arg1: u64): u64 {
+L2:	loc0: u64
+B0:
+	0: CopyLoc[0](Arg0: &Position)
+	1: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	2: ImmBorrowLoc[1](Arg1: u64)
+	3: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	4: BrFalse(12)
+B1:
+	5: MoveLoc[0](Arg0: &Position)
+	6: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	7: ImmBorrowLoc[1](Arg1: u64)
+	8: Call vec_map::get<u64, u64>(&VecMap<u64, u64>, &u64): &u64
+	9: ReadRef
+	10: StLoc[2](loc0: u64)
+	11: Branch(16)
+B2:
+	12: MoveLoc[0](Arg0: &Position)
+	13: Pop
+	14: LdU64(0)
+	15: StLoc[2](loc0: u64)
+B3:
+	16: MoveLoc[2](loc0: u64)
+	17: Ret
+}
+
+public(friend) get_claimable_rewards(Arg0: &mut Position, Arg1: &mut Table<u64, Market>, Arg2: &Clock): vector<ClaimableReward> {
+L3:	loc0: &mut RewardDistributor
+L4:	loc1: &mut RewardDistributor
+L5:	loc2: vector<ClaimableReward>
+L6:	loc3: u64
+L7:	loc4: &mut Market
+L8:	loc5: u64
+L9:	loc6: ID
+L10:	loc7: vector<ClaimableReward>
+L11:	loc8: &mut UserRewardDistributor
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: FreezeRef
+	2: Call object::id<Position>(&Position): ID
+	3: StLoc[9](loc6: ID)
+	4: VecPack(140, 0)
+	5: StLoc[10](loc7: vector<ClaimableReward>)
+	6: LdU64(0)
+	7: StLoc[6](loc3: u64)
+B1:
+	8: CopyLoc[6](loc3: u64)
+	9: CopyLoc[0](Arg0: &mut Position)
+	10: ImmBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	11: VecLen(65)
+	12: Lt
+	13: BrFalse(62)
+B2:
+	14: Branch(15)
+B3:
+	15: CopyLoc[0](Arg0: &mut Position)
+	16: MutBorrowField[40](Position.reward_distributors: vector<UserRewardDistributor>)
+	17: CopyLoc[6](loc3: u64)
+	18: VecMutBorrow(65)
+	19: StLoc[11](loc8: &mut UserRewardDistributor)
+	20: CopyLoc[11](loc8: &mut UserRewardDistributor)
+	21: FreezeRef
+	22: Call rewards::get_user_distributor_market_id(&UserRewardDistributor): u64
+	23: StLoc[8](loc5: u64)
+	24: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	25: MoveLoc[8](loc5: u64)
+	26: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	27: StLoc[7](loc4: &mut Market)
+	28: CopyLoc[11](loc8: &mut UserRewardDistributor)
+	29: FreezeRef
+	30: Call rewards::is_deposit_distributor(&UserRewardDistributor): bool
+	31: BrFalse(36)
+B4:
+	32: MoveLoc[7](loc4: &mut Market)
+	33: Call market::get_deposit_reward_distributor(&mut Market): &mut RewardDistributor
+	34: StLoc[3](loc0: &mut RewardDistributor)
+	35: Branch(39)
+B5:
+	36: MoveLoc[7](loc4: &mut Market)
+	37: Call market::get_borrow_reward_distributor(&mut Market): &mut RewardDistributor
+	38: StLoc[3](loc0: &mut RewardDistributor)
+B6:
+	39: MoveLoc[3](loc0: &mut RewardDistributor)
+	40: StLoc[4](loc1: &mut RewardDistributor)
+	41: CopyLoc[11](loc8: &mut UserRewardDistributor)
+	42: CopyLoc[4](loc1: &mut RewardDistributor)
+	43: LdFalse
+	44: CopyLoc[9](loc6: ID)
+	45: CopyLoc[2](Arg2: &Clock)
+	46: Call rewards::refresh_user_reward_distributor(&mut UserRewardDistributor, &mut RewardDistributor, bool, ID, &Clock)
+	47: MoveLoc[11](loc8: &mut UserRewardDistributor)
+	48: FreezeRef
+	49: MoveLoc[4](loc1: &mut RewardDistributor)
+	50: FreezeRef
+	51: CopyLoc[2](Arg2: &Clock)
+	52: Call rewards::get_claimable_rewards(&UserRewardDistributor, &RewardDistributor, &Clock): vector<ClaimableReward>
+	53: StLoc[5](loc2: vector<ClaimableReward>)
+	54: MutBorrowLoc[10](loc7: vector<ClaimableReward>)
+	55: MoveLoc[5](loc2: vector<ClaimableReward>)
+	56: Call vector::append<ClaimableReward>(&mut vector<ClaimableReward>, vector<ClaimableReward>)
+	57: MoveLoc[6](loc3: u64)
+	58: LdU64(1)
+	59: Add
+	60: StLoc[6](loc3: u64)
+	61: Branch(8)
+B7:
+	62: MoveLoc[0](Arg0: &mut Position)
+	63: Pop
+	64: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	65: Pop
+	66: MoveLoc[2](Arg2: &Clock)
+	67: Pop
+	68: MoveLoc[10](loc7: vector<ClaimableReward>)
+	69: Ret
+}
+
+public(friend) liquidate_bluefin_lp_position<Ty0, Ty1, Ty2>(Arg0: &mut Position, Arg1: &mut Table<u64, Market>, Arg2: u64, Arg3: Coin<Ty2>, Arg4: &mut Pool<Ty0, Ty1>, Arg5: &GlobalConfig, Arg6: &Oracle, Arg7: &Clock, Arg8: &mut TxContext): Coin<Ty0> * Coin<Ty1> * Number * Number * Number * Coin<Ty2> * Coin<Ty2> * ID * Coin<Ty0> * Coin<Ty1> {
+L9:	loc0: Number
+L10:	loc1: Coin<Ty2>
+L11:	loc2: &mut Borrow
+L12:	loc3: &mut Market
+L13:	loc4: u64
+L14:	loc5: Number
+L15:	loc6: u8
+L16:	loc7: Balance<Ty0>
+L17:	loc8: Coin<Ty0>
+L18:	loc9: Balance<Ty0>
+L19:	loc10: Coin<Ty0>
+L20:	loc11: Balance<Ty1>
+L21:	loc12: Coin<Ty1>
+L22:	loc13: Balance<Ty1>
+L23:	loc14: Coin<Ty1>
+L24:	loc15: Number
+L25:	loc16: Number
+L26:	loc17: Number
+L27:	loc18: Number
+L28:	loc19: Number
+L29:	loc20: Number
+L30:	loc21: &LpPositionCollateral
+L31:	loc22: &LpPositionCollateral
+L32:	loc23: &mut Position
+L33:	loc24: ID
+L34:	loc25: &mut Market
+L35:	loc26: Number
+L36:	loc27: Number
+L37:	loc28: Number
+L38:	loc29: Number
+L39:	loc30: Number
+L40:	loc31: Number
+L41:	loc32: Number
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::is_some<LpPositionCollateral>(&Option<LpPositionCollateral>): bool
+	3: BrFalse(5)
+B1:
+	4: Branch(21)
+B2:
+	5: MoveLoc[0](Arg0: &mut Position)
+	6: Pop
+	7: MoveLoc[6](Arg6: &Oracle)
+	8: Pop
+	9: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	10: Pop
+	11: MoveLoc[8](Arg8: &mut TxContext)
+	12: Pop
+	13: MoveLoc[7](Arg7: &Clock)
+	14: Pop
+	15: MoveLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	16: Pop
+	17: MoveLoc[5](Arg5: &GlobalConfig)
+	18: Pop
+	19: LdConst[1](u64: 1)
+	20: Abort
+B3:
+	21: CopyLoc[0](Arg0: &mut Position)
+	22: FreezeRef
+	23: CopyLoc[7](Arg7: &Clock)
+	24: Call is_liquidatable(&Position, &Clock): bool
+	25: BrFalse(27)
+B4:
+	26: Branch(43)
+B5:
+	27: MoveLoc[0](Arg0: &mut Position)
+	28: Pop
+	29: MoveLoc[6](Arg6: &Oracle)
+	30: Pop
+	31: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	32: Pop
+	33: MoveLoc[8](Arg8: &mut TxContext)
+	34: Pop
+	35: MoveLoc[7](Arg7: &Clock)
+	36: Pop
+	37: MoveLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	38: Pop
+	39: MoveLoc[5](Arg5: &GlobalConfig)
+	40: Pop
+	41: LdConst[0](u64: 0)
+	42: Abort
+B6:
+	43: CopyLoc[0](Arg0: &mut Position)
+	44: FreezeRef
+	45: CopyLoc[2](Arg2: u64)
+	46: Call find_borrow_by_market_id(&Position, u64): u64
+	47: StLoc[13](loc4: u64)
+	48: CopyLoc[0](Arg0: &mut Position)
+	49: MutBorrowField[32](Position.loans: vector<Borrow>)
+	50: MoveLoc[13](loc4: u64)
+	51: VecMutBorrow(63)
+	52: StLoc[11](loc2: &mut Borrow)
+	53: CopyLoc[11](loc2: &mut Borrow)
+	54: ImmBorrowField[24](Borrow.coin_type: TypeName)
+	55: ReadRef
+	56: Call type_name::get<Ty2>(): TypeName
+	57: Eq
+	58: BrFalse(60)
+B7:
+	59: Branch(78)
+B8:
+	60: MoveLoc[0](Arg0: &mut Position)
+	61: Pop
+	62: MoveLoc[6](Arg6: &Oracle)
+	63: Pop
+	64: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	65: Pop
+	66: MoveLoc[8](Arg8: &mut TxContext)
+	67: Pop
+	68: MoveLoc[7](Arg7: &Clock)
+	69: Pop
+	70: MoveLoc[11](loc2: &mut Borrow)
+	71: Pop
+	72: MoveLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	73: Pop
+	74: MoveLoc[5](Arg5: &GlobalConfig)
+	75: Pop
+	76: LdConst[1](u64: 1)
+	77: Abort
+B9:
+	78: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	79: FreezeRef
+	80: CopyLoc[2](Arg2: u64)
+	81: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	82: CopyLoc[6](Arg6: &Oracle)
+	83: Call market::get_token_spot_price(&Market, &Oracle): Number
+	84: ImmBorrowLoc[3](Arg3: Coin<Ty2>)
+	85: Call coin::value<Ty2>(&Coin<Ty2>): u64
+	86: Call math::from(u64): Number
+	87: Call math::mul(Number, Number): Number
+	88: StLoc[37](loc28: Number)
+	89: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	90: CopyLoc[2](Arg2: u64)
+	91: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	92: StLoc[34](loc25: &mut Market)
+	93: MoveLoc[11](loc2: &mut Borrow)
+	94: MoveLoc[34](loc25: &mut Market)
+	95: CopyLoc[6](Arg6: &Oracle)
+	96: CopyLoc[7](Arg7: &Clock)
+	97: Call update_and_get_borrow_value(&mut Borrow, &mut Market, &Oracle, &Clock): Number * Number
+	98: Pop
+	99: StLoc[14](loc5: Number)
+	100: CopyLoc[0](Arg0: &mut Position)
+	101: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	102: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	103: ImmBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	104: ImmBorrowField[38](LpPositionCollateralConfig.close_factor_percentage: u8)
+	105: ReadRef
+	106: StLoc[15](loc6: u8)
+	107: CopyLoc[14](loc5: Number)
+	108: LdU64(1)
+	109: Call math::from(u64): Number
+	110: Call math::le(Number, Number): bool
+	111: BrFalse(117)
+B10:
+	112: MoveLoc[14](loc5: Number)
+	113: MoveLoc[37](loc28: Number)
+	114: Call math::min(Number, Number): Number
+	115: StLoc[9](loc0: Number)
+	116: Branch(127)
+B11:
+	117: MoveLoc[14](loc5: Number)
+	118: CopyLoc[0](Arg0: &mut Position)
+	119: ImmBorrowField[6](Position.spot_total_loan_usd: Number)
+	120: ReadRef
+	121: MoveLoc[15](loc6: u8)
+	122: CastU16
+	123: Call math::from_percentage(u16): Number
+	124: Call math::mul(Number, Number): Number
+	125: Call math::min(Number, Number): Number
+	126: StLoc[9](loc0: Number)
+B12:
+	127: MoveLoc[9](loc0: Number)
+	128: StLoc[40](loc31: Number)
+	129: CopyLoc[0](Arg0: &mut Position)
+	130: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	131: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	132: StLoc[30](loc21: &LpPositionCollateral)
+	133: CopyLoc[40](loc31: Number)
+	134: CopyLoc[30](loc21: &LpPositionCollateral)
+	135: ImmBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	136: ImmBorrowField[36](LpPositionCollateralConfig.liquidation_bonus: u64)
+	137: ReadRef
+	138: Call math::from_bps(u64): Number
+	139: Call math::mul(Number, Number): Number
+	140: StLoc[26](loc17: Number)
+	141: CopyLoc[40](loc31: Number)
+	142: CopyLoc[30](loc21: &LpPositionCollateral)
+	143: ImmBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	144: ImmBorrowField[37](LpPositionCollateralConfig.liquidation_fee: u64)
+	145: ReadRef
+	146: Call math::from_bps(u64): Number
+	147: Call math::mul(Number, Number): Number
+	148: StLoc[28](loc19: Number)
+	149: MoveLoc[40](loc31: Number)
+	150: CopyLoc[26](loc17: Number)
+	151: CopyLoc[28](loc19: Number)
+	152: Call math::add(Number, Number): Number
+	153: Call math::add(Number, Number): Number
+	154: StLoc[38](loc29: Number)
+	155: CopyLoc[30](loc21: &LpPositionCollateral)
+	156: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	157: ReadRef
+	158: CopyLoc[38](loc29: Number)
+	159: Call math::lt(Number, Number): bool
+	160: BrFalse(180)
+B13:
+	161: MoveLoc[30](loc21: &LpPositionCollateral)
+	162: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	163: ReadRef
+	164: CopyLoc[38](loc29: Number)
+	165: Call math::div(Number, Number): Number
+	166: StLoc[36](loc27: Number)
+	167: MoveLoc[38](loc29: Number)
+	168: CopyLoc[36](loc27: Number)
+	169: Call math::mul(Number, Number): Number
+	170: StLoc[38](loc29: Number)
+	171: MoveLoc[26](loc17: Number)
+	172: CopyLoc[36](loc27: Number)
+	173: Call math::mul(Number, Number): Number
+	174: StLoc[26](loc17: Number)
+	175: MoveLoc[28](loc19: Number)
+	176: MoveLoc[36](loc27: Number)
+	177: Call math::mul(Number, Number): Number
+	178: StLoc[28](loc19: Number)
+	179: Branch(182)
+B14:
+	180: MoveLoc[30](loc21: &LpPositionCollateral)
+	181: Pop
+B15:
+	182: MoveLoc[38](loc29: Number)
+	183: MoveLoc[26](loc17: Number)
+	184: MoveLoc[28](loc19: Number)
+	185: StLoc[29](loc20: Number)
+	186: StLoc[27](loc18: Number)
+	187: StLoc[39](loc30: Number)
+	188: CopyLoc[39](loc30: Number)
+	189: CopyLoc[27](loc18: Number)
+	190: Call math::sub(Number, Number): Number
+	191: CopyLoc[29](loc20: Number)
+	192: Call math::sub(Number, Number): Number
+	193: StLoc[35](loc26: Number)
+	194: MutBorrowLoc[3](Arg3: Coin<Ty2>)
+	195: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	196: FreezeRef
+	197: CopyLoc[2](Arg2: u64)
+	198: Call table::borrow<u64, Market>(&Table<u64, Market>, u64): &Market
+	199: MoveLoc[6](Arg6: &Oracle)
+	200: MoveLoc[35](loc26: Number)
+	201: Call market::get_token_count(&Market, &Oracle, Number): Number
+	202: Call math::to_u64(Number): u64
+	203: CopyLoc[8](Arg8: &mut TxContext)
+	204: Call coin::split<Ty2>(&mut Coin<Ty2>, u64, &mut TxContext): Coin<Ty2>
+	205: StLoc[10](loc1: Coin<Ty2>)
+	206: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	207: CopyLoc[2](Arg2: u64)
+	208: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	209: StLoc[12](loc3: &mut Market)
+	210: CopyLoc[0](Arg0: &mut Position)
+	211: Call type_name::get<Ty2>(): TypeName
+	212: MoveLoc[2](Arg2: u64)
+	213: MoveLoc[12](loc3: &mut Market)
+	214: ImmBorrowLoc[10](loc1: Coin<Ty2>)
+	215: Call coin::value<Ty2>(&Coin<Ty2>): u64
+	216: CopyLoc[7](Arg7: &Clock)
+	217: Call repay(&mut Position, TypeName, u64, &mut Market, u64, &Clock): u64
+	218: ImmBorrowLoc[10](loc1: Coin<Ty2>)
+	219: Call coin::value<Ty2>(&Coin<Ty2>): u64
+	220: Eq
+	221: BrFalse(223)
+B16:
+	222: Branch(235)
+B17:
+	223: MoveLoc[0](Arg0: &mut Position)
+	224: Pop
+	225: MoveLoc[8](Arg8: &mut TxContext)
+	226: Pop
+	227: MoveLoc[7](Arg7: &Clock)
+	228: Pop
+	229: MoveLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	230: Pop
+	231: MoveLoc[5](Arg5: &GlobalConfig)
+	232: Pop
+	233: LdU64(13906839839405244415)
+	234: Abort
+B18:
+	235: CopyLoc[0](Arg0: &mut Position)
+	236: MutBorrowField[30](Position.id: UID)
+	237: CopyLoc[0](Arg0: &mut Position)
+	238: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	239: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	240: ImmBorrowField[14](LpPositionCollateral.lp_position_id: ID)
+	241: ReadRef
+	242: Call dynamic_field::borrow_mut<ID, Position>(&mut UID, ID): &mut Position
+	243: StLoc[32](loc23: &mut Position)
+	244: CopyLoc[32](loc23: &mut Position)
+	245: FreezeRef
+	246: Call object::id<Position>(&Position): ID
+	247: StLoc[33](loc24: ID)
+	248: MoveLoc[0](Arg0: &mut Position)
+	249: ImmBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	250: Call option::borrow<LpPositionCollateral>(&Option<LpPositionCollateral>): &LpPositionCollateral
+	251: StLoc[31](loc22: &LpPositionCollateral)
+	252: CopyLoc[39](loc30: Number)
+	253: CopyLoc[29](loc20: Number)
+	254: Call math::sub(Number, Number): Number
+	255: StLoc[25](loc16: Number)
+	256: CopyLoc[32](loc23: &mut Position)
+	257: FreezeRef
+	258: Call 1position::liquidity(&Position): u128
+	259: Call math::from_u128(u128): Number
+	260: MoveLoc[25](loc16: Number)
+	261: Call math::mul(Number, Number): Number
+	262: CopyLoc[31](loc22: &LpPositionCollateral)
+	263: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	264: ReadRef
+	265: Call math::div(Number, Number): Number
+	266: StLoc[41](loc32: Number)
+	267: CopyLoc[32](loc23: &mut Position)
+	268: FreezeRef
+	269: Call 1position::liquidity(&Position): u128
+	270: Call math::from_u128(u128): Number
+	271: CopyLoc[29](loc20: Number)
+	272: Call math::mul(Number, Number): Number
+	273: MoveLoc[31](loc22: &LpPositionCollateral)
+	274: ImmBorrowField[15](LpPositionCollateral.usd_value: Number)
+	275: ReadRef
+	276: Call math::div(Number, Number): Number
+	277: StLoc[24](loc15: Number)
+	278: CopyLoc[5](Arg5: &GlobalConfig)
+	279: CopyLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	280: CopyLoc[32](loc23: &mut Position)
+	281: MoveLoc[41](loc32: Number)
+	282: Call math::to_u128(Number): u128
+	283: CopyLoc[7](Arg7: &Clock)
+	284: Call pool::remove_liquidity<Ty0, Ty1>(&GlobalConfig, &mut Pool<Ty0, Ty1>, &mut Position, u128, &Clock): u64 * u64 * Balance<Ty0> * Balance<Ty1>
+	285: StLoc[20](loc11: Balance<Ty1>)
+	286: StLoc[16](loc7: Balance<Ty0>)
+	287: Pop
+	288: Pop
+	289: MoveLoc[5](Arg5: &GlobalConfig)
+	290: MoveLoc[4](Arg4: &mut Pool<Ty0, Ty1>)
+	291: MoveLoc[32](loc23: &mut Position)
+	292: MoveLoc[24](loc15: Number)
+	293: Call math::to_u128(Number): u128
+	294: MoveLoc[7](Arg7: &Clock)
+	295: Call pool::remove_liquidity<Ty0, Ty1>(&GlobalConfig, &mut Pool<Ty0, Ty1>, &mut Position, u128, &Clock): u64 * u64 * Balance<Ty0> * Balance<Ty1>
+	296: StLoc[22](loc13: Balance<Ty1>)
+	297: StLoc[18](loc9: Balance<Ty0>)
+	298: Pop
+	299: Pop
+	300: MoveLoc[16](loc7: Balance<Ty0>)
+	301: CopyLoc[8](Arg8: &mut TxContext)
+	302: Call coin::from_balance<Ty0>(Balance<Ty0>, &mut TxContext): Coin<Ty0>
+	303: StLoc[17](loc8: Coin<Ty0>)
+	304: MoveLoc[20](loc11: Balance<Ty1>)
+	305: CopyLoc[8](Arg8: &mut TxContext)
+	306: Call coin::from_balance<Ty1>(Balance<Ty1>, &mut TxContext): Coin<Ty1>
+	307: StLoc[21](loc12: Coin<Ty1>)
+	308: MoveLoc[18](loc9: Balance<Ty0>)
+	309: CopyLoc[8](Arg8: &mut TxContext)
+	310: Call coin::from_balance<Ty0>(Balance<Ty0>, &mut TxContext): Coin<Ty0>
+	311: StLoc[19](loc10: Coin<Ty0>)
+	312: MoveLoc[22](loc13: Balance<Ty1>)
+	313: MoveLoc[8](Arg8: &mut TxContext)
+	314: Call coin::from_balance<Ty1>(Balance<Ty1>, &mut TxContext): Coin<Ty1>
+	315: StLoc[23](loc14: Coin<Ty1>)
+	316: MoveLoc[17](loc8: Coin<Ty0>)
+	317: MoveLoc[21](loc12: Coin<Ty1>)
+	318: MoveLoc[39](loc30: Number)
+	319: MoveLoc[27](loc18: Number)
+	320: MoveLoc[29](loc20: Number)
+	321: MoveLoc[10](loc1: Coin<Ty2>)
+	322: MoveLoc[3](Arg3: Coin<Ty2>)
+	323: MoveLoc[33](loc24: ID)
+	324: MoveLoc[19](loc10: Coin<Ty0>)
+	325: MoveLoc[23](loc14: Coin<Ty1>)
+	326: Ret
+}
+
+public(friend) loan_writeoff(Arg0: &mut Position, Arg1: &mut Table<u64, Market>, Arg2: &Oracle, Arg3: &Clock) {
+L4:	loc0: u64
+L5:	loc1: &mut Borrow
+L6:	loc2: &mut Market
+B0:
+	0: CopyLoc[0](Arg0: &mut Position)
+	1: ImmBorrowField[12](Position.last_refreshed: u64)
+	2: ReadRef
+	3: CopyLoc[3](Arg3: &Clock)
+	4: Call clock::timestamp_ms(&Clock): u64
+	5: Eq
+	6: BrFalse(8)
+B1:
+	7: Branch(18)
+B2:
+	8: MoveLoc[0](Arg0: &mut Position)
+	9: Pop
+	10: MoveLoc[2](Arg2: &Oracle)
+	11: Pop
+	12: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	13: Pop
+	14: MoveLoc[3](Arg3: &Clock)
+	15: Pop
+	16: LdConst[2](u64: 2)
+	17: Abort
+B3:
+	18: CopyLoc[0](Arg0: &mut Position)
+	19: ImmBorrowField[1](Position.total_collateral_usd: Number)
+	20: ReadRef
+	21: LdU64(0)
+	22: Call math::from(u64): Number
+	23: Call math::eq(Number, Number): bool
+	24: BrFalse(26)
+B4:
+	25: Branch(36)
+B5:
+	26: MoveLoc[0](Arg0: &mut Position)
+	27: Pop
+	28: MoveLoc[2](Arg2: &Oracle)
+	29: Pop
+	30: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	31: Pop
+	32: MoveLoc[3](Arg3: &Clock)
+	33: Pop
+	34: LdConst[6](u64: 6)
+	35: Abort
+B6:
+	36: LdU64(0)
+	37: StLoc[4](loc0: u64)
+B7:
+	38: CopyLoc[4](loc0: u64)
+	39: CopyLoc[0](Arg0: &mut Position)
+	40: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	41: VecLen(63)
+	42: Lt
+	43: BrFalse(83)
+B8:
+	44: CopyLoc[0](Arg0: &mut Position)
+	45: MutBorrowField[32](Position.loans: vector<Borrow>)
+	46: CopyLoc[4](loc0: u64)
+	47: VecMutBorrow(63)
+	48: StLoc[5](loc1: &mut Borrow)
+	49: CopyLoc[1](Arg1: &mut Table<u64, Market>)
+	50: CopyLoc[5](loc1: &mut Borrow)
+	51: ImmBorrowField[25](Borrow.market_id: u64)
+	52: ReadRef
+	53: Call table::borrow_mut<u64, Market>(&mut Table<u64, Market>, u64): &mut Market
+	54: StLoc[6](loc2: &mut Market)
+	55: CopyLoc[6](loc2: &mut Market)
+	56: CopyLoc[2](Arg2: &Oracle)
+	57: CopyLoc[3](Arg3: &Clock)
+	58: Call market::refresh_with_price(&mut Market, &Oracle, &Clock)
+	59: CopyLoc[6](loc2: &mut Market)
+	60: CopyLoc[5](loc1: &mut Borrow)
+	61: ImmBorrowField[26](Borrow.amount: u64)
+	62: ReadRef
+	63: Call market::writeoff_borrow(&mut Market, u64)
+	64: CopyLoc[0](Arg0: &mut Position)
+	65: CopyLoc[5](loc1: &mut Borrow)
+	66: ImmBorrowField[24](Borrow.coin_type: TypeName)
+	67: ReadRef
+	68: CopyLoc[5](loc1: &mut Borrow)
+	69: ImmBorrowField[25](Borrow.market_id: u64)
+	70: ReadRef
+	71: MoveLoc[6](loc2: &mut Market)
+	72: MoveLoc[5](loc1: &mut Borrow)
+	73: ImmBorrowField[26](Borrow.amount: u64)
+	74: ReadRef
+	75: CopyLoc[3](Arg3: &Clock)
+	76: Call repay(&mut Position, TypeName, u64, &mut Market, u64, &Clock): u64
+	77: Pop
+	78: MoveLoc[4](loc0: u64)
+	79: LdU64(1)
+	80: Add
+	81: StLoc[4](loc0: u64)
+	82: Branch(38)
+B9:
+	83: MoveLoc[0](Arg0: &mut Position)
+	84: Pop
+	85: MoveLoc[2](Arg2: &Oracle)
+	86: Pop
+	87: MoveLoc[1](Arg1: &mut Table<u64, Market>)
+	88: Pop
+	89: MoveLoc[3](Arg3: &Clock)
+	90: Pop
+	91: Ret
+}
+
+public(friend) update_lp_position_close_factor(Arg0: &mut Position, Arg1: u8) {
+L2:	loc0: &mut LpPositionCollateral
+B0:
+	0: MoveLoc[0](Arg0: &mut Position)
+	1: MutBorrowField[31](Position.lp_collaterals: Option<LpPositionCollateral>)
+	2: Call option::borrow_mut<LpPositionCollateral>(&mut Option<LpPositionCollateral>): &mut LpPositionCollateral
+	3: StLoc[2](loc0: &mut LpPositionCollateral)
+	4: MoveLoc[1](Arg1: u8)
+	5: MoveLoc[2](loc0: &mut LpPositionCollateral)
+	6: MutBorrowField[33](LpPositionCollateral.config: LpPositionCollateralConfig)
+	7: MutBorrowField[38](LpPositionCollateralConfig.close_factor_percentage: u8)
+	8: WriteRef
+	9: Ret
+}
+
+public(friend) get_partner_id(Arg0: &Position): Option<ID> {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[0](Position.partner_id: Option<ID>)
+	2: ReadRef
+	3: Ret
+}
+
+public(friend) has_borrows(Arg0: &Position): bool {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	2: VecLen(63)
+	3: LdU64(0)
+	4: Gt
+	5: Ret
+}
+
+public(friend) has_borrowed_from(Arg0: &Position, Arg1: u64): bool {
+L2:	loc0: u64
+B0:
+	0: LdU64(0)
+	1: StLoc[2](loc0: u64)
+B1:
+	2: CopyLoc[2](loc0: u64)
+	3: CopyLoc[0](Arg0: &Position)
+	4: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	5: VecLen(63)
+	6: Lt
+	7: BrFalse(27)
+B2:
+	8: Branch(9)
+B3:
+	9: CopyLoc[0](Arg0: &Position)
+	10: ImmBorrowField[32](Position.loans: vector<Borrow>)
+	11: CopyLoc[2](loc0: u64)
+	12: VecImmBorrow(63)
+	13: ImmBorrowField[25](Borrow.market_id: u64)
+	14: ReadRef
+	15: CopyLoc[1](Arg1: u64)
+	16: Eq
+	17: BrFalse(22)
+B4:
+	18: MoveLoc[0](Arg0: &Position)
+	19: Pop
+	20: LdTrue
+	21: Ret
+B5:
+	22: MoveLoc[2](loc0: u64)
+	23: LdU64(1)
+	24: Add
+	25: StLoc[2](loc0: u64)
+	26: Branch(2)
+B6:
+	27: MoveLoc[0](Arg0: &Position)
+	28: Pop
+	29: LdFalse
+	30: Ret
+}
+
+public(friend) has_deposited_to(Arg0: &Position, Arg1: u64): bool {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[39](Position.collaterals: VecMap<u64, u64>)
+	2: ImmBorrowLoc[1](Arg1: u64)
+	3: Call vec_map::contains<u64, u64>(&VecMap<u64, u64>, &u64): bool
+	4: Ret
+}
+
+public(friend) get_position_type(Arg0: &Position): u8 {
+B0:
+	0: MoveLoc[0](Arg0: &Position)
+	1: ImmBorrowField[42](Position.position_type: u8)
+	2: ReadRef
+	3: Ret
+}
+
+public(friend) get_position_type_normal(): u8 {
+B0:
+	0: LdConst[11](u8: 0)
+	1: Ret
+}
+
+Constants [
+	0 => u64: 0
+	1 => u64: 1
+	2 => u64: 2
+	3 => u64: 3
+	4 => u64: 4
+	5 => u64: 5
+	6 => u64: 6
+	7 => u64: 7
+	8 => u64: 8
+	9 => u64: 9
+	10 => u8: 20
+	11 => u8: 0
+	12 => u64: 20
+	13 => u64: 1000
+	14 => u64: 500
+	15 => u8: 1
+	16 => u8: 2
+	17 => vector<u8>: "https://api-staging.alphalend.xyz/nft/" // interpreted as UTF8 string
+]
+}
+
