@@ -1,0 +1,14 @@
+{
+  "name": "alphalend-liquidation-poc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PoC: AlphaLend zero-LTV collateral seizable during liquidation",
+  "main": "poc.js",
+  "scripts": {
+    "guards": "node poc.js --guards"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "sui-gql-mini": "github:projectswe-mode/sui-gql-mini"
+  }
+}
