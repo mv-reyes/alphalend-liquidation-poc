@@ -61,7 +61,7 @@ actually backed the loan untouched, and loses the non-backing asset instead.
 
 ## Reproduction
 
-Setup (installs the Sui GraphQL client the chain queries use):
+Setup (installs my mini Sui GraphQL client, pinned to a release tag for a reproducible repro):
 
 ```
 npm install

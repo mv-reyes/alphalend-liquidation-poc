@@ -9,6 +9,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "sui-gql-mini": "github:projectswe-mode/sui-gql-mini"
+    "sui-gql-mini": "github:projectswe-mode/sui-gql-mini#v1.0.1"
   }
 }
